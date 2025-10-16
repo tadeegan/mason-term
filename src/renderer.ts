@@ -27,7 +27,18 @@
  */
 
 import './index.css';
+import { Terminal } from './components/Terminal';
 
-console.log(
-  '👋 This message is being logged by "renderer.js", included via webpack',
-);
+// Wait for DOM to be ready
+window.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('terminal-container');
+
+  if (container) {
+    const terminal = new Terminal(container);
+    terminal.focus();
+
+    console.log('Terminal initialized');
+  } else {
+    console.error('Terminal container not found');
+  }
+});

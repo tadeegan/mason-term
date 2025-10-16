@@ -35,6 +35,27 @@ const config: ForgeConfig = {
             name: 'main_window',
             preload: {
               js: './src/preload.ts',
+              config: {
+                module: {
+                  rules: [
+                    {
+                      test: /\.tsx?$/,
+                      exclude: /(node_modules|\.webpack)/,
+                      use: {
+                        loader: 'ts-loader',
+                        options: {
+                          transpileOnly: true,
+                        },
+                      },
+                    },
+                  ],
+                },
+                plugins: [],
+                resolve: {
+                  extensions: ['.js', '.ts', '.jsx', '.tsx', '.css', '.json'],
+                },
+                target: 'electron-preload',
+              },
             },
           },
         ],
