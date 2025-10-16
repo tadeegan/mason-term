@@ -19,11 +19,12 @@ export class TerminalManager {
   constructor(
     groupSidebarContainer: HTMLElement,
     tabBarContainer: HTMLElement,
-    terminalContainer: HTMLElement
+    terminalContainer: HTMLElement,
+    appContainer: HTMLElement
   ) {
     this.terminalContainer = terminalContainer;
 
-    this.groupSidebar = new GroupSidebar(groupSidebarContainer, {
+    this.groupSidebar = new GroupSidebar(groupSidebarContainer, appContainer, {
       onGroupSelect: (groupId) => this.switchGroup(groupId),
       onNewGroup: () => this.createNewGroup(),
     });
@@ -203,7 +204,7 @@ export class TerminalManager {
       : [];
 
     this.tabBar.render(groupTabs);
-    this.groupSidebar.render(this.groups);
+    this.groupSidebar.render(this.groups, this.tabs);
   }
 
   // Public method to handle mason new-group command

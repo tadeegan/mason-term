@@ -180,3 +180,183 @@ html, body {
   background-color: #2a2d2e;
   color: #d4d4d4;
 }
+
+/* Process Monitor Card Styles */
+.process-monitor-card {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(30, 30, 30, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 20px;
+  min-width: 400px;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none;
+}
+
+.process-monitor-card.visible {
+  opacity: 1;
+}
+
+.process-monitor-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.process-monitor-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #d4d4d4;
+}
+
+.process-monitor-summary {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.summary-item {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.summary-label {
+  color: #858585;
+}
+
+.summary-value {
+  color: #4ec9b0;
+  font-weight: 500;
+}
+
+.process-monitor-ports {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ports-label {
+  font-size: 12px;
+  color: #858585;
+  margin-bottom: 8px;
+}
+
+.ports-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.port-badge {
+  background: #007acc;
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: 'Courier New', monospace;
+}
+
+.process-monitor-terminals {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.no-terminals {
+  color: #858585;
+  font-size: 13px;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+}
+
+.terminal-info-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 12px;
+  transition: background-color 0.1s;
+}
+
+.terminal-info-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.terminal-info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.terminal-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #d4d4d4;
+}
+
+.terminal-pid {
+  font-size: 11px;
+  color: #858585;
+  font-family: 'Courier New', monospace;
+}
+
+.terminal-info-details {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.terminal-process {
+  color: #dcdcaa;
+  font-family: 'Courier New', monospace;
+}
+
+.terminal-cpu {
+  color: #ce9178;
+}
+
+.terminal-memory {
+  color: #569cd6;
+}
+
+.terminal-ports {
+  font-size: 11px;
+  color: #858585;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Scrollbar styling for the card */
+.process-monitor-card::-webkit-scrollbar {
+  width: 8px;
+}
+
+.process-monitor-card::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.process-monitor-card::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.process-monitor-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}

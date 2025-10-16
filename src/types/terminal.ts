@@ -1,3 +1,5 @@
+import { ProcessInfo } from './process';
+
 export interface TerminalAPI {
   create: (terminalId: string, workingDir: string) => Promise<{ success: boolean }>;
   onData: (terminalId: string, callback: (data: string) => void) => void;
@@ -5,6 +7,7 @@ export interface TerminalAPI {
   resize: (terminalId: string, cols: number, rows: number) => void;
   onExit: (terminalId: string, callback: (code: number) => void) => void;
   onMasonCommand: (callback: (command: string, path: string) => void) => void;
+  getProcessInfo: (terminalId: string) => Promise<ProcessInfo | null>;
 }
 
 declare global {

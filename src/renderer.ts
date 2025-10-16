@@ -31,15 +31,17 @@ import { TerminalManager } from './components/TerminalManager';
 
 // Wait for DOM to be ready
 window.addEventListener('DOMContentLoaded', () => {
+  const appContainer = document.getElementById('app');
   const groupSidebarContainer = document.getElementById('group-sidebar');
   const tabBarContainer = document.getElementById('tab-bar');
   const terminalsContainer = document.getElementById('terminals-container');
 
-  if (groupSidebarContainer && tabBarContainer && terminalsContainer) {
+  if (appContainer && groupSidebarContainer && tabBarContainer && terminalsContainer) {
     const terminalManager = new TerminalManager(
       groupSidebarContainer,
       tabBarContainer,
-      terminalsContainer
+      terminalsContainer,
+      appContainer
     );
 
     // Setup mason command listener

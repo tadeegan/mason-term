@@ -24,6 +24,8 @@ const terminalAPI: TerminalAPI = {
       callback(data.command, data.path)
     );
   },
+  getProcessInfo: (terminalId: string) =>
+    ipcRenderer.invoke('terminal:getProcessInfo', terminalId),
 };
 
 contextBridge.exposeInMainWorld('terminalAPI', terminalAPI);

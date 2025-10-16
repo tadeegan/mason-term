@@ -1,12 +1,17 @@
 import { Group } from '../types/group';
+import { Tab } from '../types/tab';
+import { ProcessMonitorCard } from './ProcessMonitorCard';
 
 export class GroupSidebar {
   private container: HTMLElement;
   private onGroupSelect: (groupId: string) => void;
   private onNewGroup: () => void;
+  private processMonitorCard: ProcessMonitorCard;
+  private allTabs: Tab[] = [];
 
   constructor(
     container: HTMLElement,
+    appContainer: HTMLElement,
     callbacks: {
       onGroupSelect: (groupId: string) => void;
       onNewGroup: () => void;
@@ -15,9 +20,11 @@ export class GroupSidebar {
     this.container = container;
     this.onGroupSelect = callbacks.onGroupSelect;
     this.onNewGroup = callbacks.onNewGroup;
+    this.processMonitorCard = new ProcessMonitorCard(appContainer);
   }
 
-  public render(groups: Group[]): void {
+  public render(groups: Group[], allTabs: Tab[]): void {
+    this.allTabs = allTabs;
     this.container.innerHTML = '';
 
     // Create groups list container
@@ -45,6 +52,16 @@ export class GroupSidebar {
     const groupElement = document.createElement('div');
     groupElement.className = `group-item ${group.isActive ? 'active' : ''}`;
     groupElement.onclick = () => this.onGroupSelect(group.id);
+
+    // Add hover handlers for process monitor card
+    groupElement.onmouseenter = () => {
+      const groupTabs = this.allTabs.filter((tab) => tab.groupId === group.id);
+      this.processMonitorCard.show(group.title, groupTabs);
+    };
+
+    groupElement.onmouseleave = () => {
+      this.processMonitorCard.hide();
+    };
 
     const titleElement = document.createElement('div');
     titleElement.className = 'group-title';
