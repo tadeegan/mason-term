@@ -36,7 +36,20 @@ window.addEventListener('DOMContentLoaded', () => {
   const terminalsContainer = document.getElementById('terminals-container');
 
   if (groupSidebarContainer && tabBarContainer && terminalsContainer) {
-    new TerminalManager(groupSidebarContainer, tabBarContainer, terminalsContainer);
+    const terminalManager = new TerminalManager(
+      groupSidebarContainer,
+      tabBarContainer,
+      terminalsContainer
+    );
+
+    // Setup mason command listener
+    window.terminalAPI.onMasonCommand((command: string, path: string) => {
+      console.log(`Mason command received: ${command} ${path}`);
+      if (command === 'new-group') {
+        terminalManager.handleMasonNewGroup(path);
+      }
+    });
+
     console.log('Terminal Manager initialized with groups');
   } else {
     console.error('Required containers not found');

@@ -4,6 +4,7 @@ export interface TerminalAPI {
   sendData: (terminalId: string, data: string) => void;
   resize: (terminalId: string, cols: number, rows: number) => void;
   onExit: (terminalId: string, callback: (code: number) => void) => void;
+  onMasonCommand: (callback: (command: string, path: string) => void) => void;
 }
 
 declare global {

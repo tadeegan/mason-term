@@ -205,4 +205,13 @@ export class TerminalManager {
     this.tabBar.render(groupTabs);
     this.groupSidebar.render(this.groups);
   }
+
+  // Public method to handle mason new-group command
+  public handleMasonNewGroup(workingDir: string): void {
+    console.log(`Creating new group with working directory: ${workingDir}`);
+    // Extract a title from the path (use the last directory name)
+    const pathParts = workingDir.split('/').filter(Boolean);
+    const title = pathParts.length > 0 ? pathParts[pathParts.length - 1] : 'New Group';
+    this.createGroup(title, workingDir);
+  }
 }

@@ -19,6 +19,11 @@ const terminalAPI: TerminalAPI = {
   onExit: (terminalId: string, callback: (code: number) => void) => {
     ipcRenderer.on(`terminal:exit:${terminalId}`, (_, code: number) => callback(code));
   },
+  onMasonCommand: (callback: (command: string, path: string) => void) => {
+    ipcRenderer.on('mason:command', (_, data: { command: string; path: string }) =>
+      callback(data.command, data.path)
+    );
+  },
 };
 
 contextBridge.exposeInMainWorld('terminalAPI', terminalAPI);
