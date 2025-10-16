@@ -204,6 +204,35 @@ if [ -f ~/.zshrc ]; then source ~/.zshrc; fi
     }
   });
 
+  // Helper function to get all child PIDs recursively
+  const getChildPids = async (parentPid: number): Promise<number[]> => {
+    if (process.platform === 'win32') {
+      return []; // Not implemented for Windows yet
+    }
+
+    try {
+      // Use pgrep to find all descendants
+      const { stdout } = await execAsync(`pgrep -P ${parentPid}`);
+      const childPids = stdout
+        .trim()
+        .split('\n')
+        .filter((line) => line)
+        .map((pid) => parseInt(pid, 10));
+
+      // Recursively get children of children
+      const allDescendants: number[] = [...childPids];
+      for (const childPid of childPids) {
+        const descendants = await getChildPids(childPid);
+        allDescendants.push(...descendants);
+      }
+
+      return allDescendants;
+    } catch (error) {
+      // No children found or pgrep failed
+      return [];
+    }
+  };
+
   // Get process information for a terminal
   ipcMain.handle('terminal:getProcessInfo', async (_, terminalId: string) => {
     const ptyProcess = ptyProcesses.get(terminalId);
@@ -215,14 +244,32 @@ if [ -f ~/.zshrc ]; then source ~/.zshrc; fi
     const processName = ptyProcess.process;
 
     try {
-      // Get CPU and memory usage
-      const stats = await pidusage(pid);
+      // Get all child PIDs (including shell and its children)
+      const allPids = [pid, ...(await getChildPids(pid))];
+
+      // Get CPU and memory usage for all processes
+      const statsPromises = allPids.map((p) =>
+        pidusage(p).catch(() => null)
+      );
+      const allStats = await Promise.all(statsPromises);
+
+      // Sum up CPU and memory across all processes
+      let totalCpu = 0;
+      let totalMemory = 0;
+      allStats.forEach((stat) => {
+        if (stat) {
+          totalCpu += stat.cpu;
+          totalMemory += stat.memory;
+        }
+      });
 
       // Get listening ports using lsof (Unix-like systems only)
+      // Check all PIDs for listening ports
       let ports: number[] = [];
       if (process.platform !== 'win32') {
         try {
-          const { stdout } = await execAsync(`lsof -Pan -p ${pid} -i`);
+          const pidsString = allPids.join(',');
+          const { stdout } = await execAsync(`lsof -Pan -p ${pidsString} -i`);
           const lines = stdout.split('\n');
           const portSet = new Set<number>();
 
@@ -248,8 +295,8 @@ if [ -f ~/.zshrc ]; then source ~/.zshrc; fi
         pid,
         processName,
         ports,
-        cpuPercent: Math.round(stats.cpu * 10) / 10, // Round to 1 decimal
-        memoryMB: Math.round(stats.memory / 1024 / 1024 * 10) / 10, // Convert to MB, round to 1 decimal
+        cpuPercent: Math.round(totalCpu * 10) / 10, // Round to 1 decimal
+        memoryMB: Math.round(totalMemory / 1024 / 1024 * 10) / 10, // Convert to MB, round to 1 decimal
       };
     } catch (error) {
       console.error(`Failed to get process info for ${terminalId}:`, error);
