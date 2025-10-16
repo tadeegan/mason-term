@@ -41,33 +41,50 @@ const setupTerminalHandlers = () => {
   const shell = process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || '/bin/bash';
 
   // Create terminal process
-  ipcMain.handle('terminal:create', (_, terminalId: string) => {
+  ipcMain.handle('terminal:create', (_, terminalId: string, workingDir: string) => {
     // Clean up existing process if it exists
     if (ptyProcesses.has(terminalId)) {
       ptyProcesses.get(terminalId)?.kill();
       ptyProcesses.delete(terminalId);
     }
 
-    const ptyProcess = pty.spawn(shell, [], {
-      name: 'xterm-color',
-      cols: 80,
-      rows: 24,
-      cwd: process.env.HOME || process.cwd(),
-      env: process.env as { [key: string]: string },
-    });
+    // Expand ~ to home directory
+    let actualWorkingDir = workingDir;
+    if (workingDir === '~' || workingDir.startsWith('~/')) {
+      const home = process.env.HOME || process.env.USERPROFILE || '';
+      actualWorkingDir = home + workingDir.substring(1);
+    }
 
-    ptyProcesses.set(terminalId, ptyProcess);
+    console.log(`Creating terminal ${terminalId} with cwd: ${actualWorkingDir}`);
 
-    // Send data from PTY to renderer
-    ptyProcess.onData((data: string) => {
-      BrowserWindow.getAllWindows()[0]?.webContents.send(`terminal:data:${terminalId}`, data);
-    });
+    try {
+      const ptyProcess = pty.spawn(shell, [], {
+        name: 'xterm-color',
+        cols: 80,
+        rows: 24,
+        cwd: actualWorkingDir,
+        env: process.env as { [key: string]: string },
+      });
 
-    // Handle process exit
-    ptyProcess.onExit(({ exitCode }) => {
-      BrowserWindow.getAllWindows()[0]?.webContents.send(`terminal:exit:${terminalId}`, exitCode);
-      ptyProcesses.delete(terminalId);
-    });
+      ptyProcesses.set(terminalId, ptyProcess);
+
+      // Send data from PTY to renderer
+      ptyProcess.onData((data: string) => {
+        BrowserWindow.getAllWindows()[0]?.webContents.send(`terminal:data:${terminalId}`, data);
+      });
+
+      // Handle process exit
+      ptyProcess.onExit(({ exitCode, signal }) => {
+        console.log(`Terminal ${terminalId} exited with code ${exitCode}, signal ${signal}`);
+        BrowserWindow.getAllWindows()[0]?.webContents.send(`terminal:exit:${terminalId}`, exitCode);
+        ptyProcesses.delete(terminalId);
+      });
+
+      console.log(`Terminal ${terminalId} created successfully`);
+    } catch (error) {
+      console.error(`Failed to create terminal ${terminalId}:`, error);
+      throw error;
+    }
 
     return { success: true };
   });

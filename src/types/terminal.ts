@@ -1,5 +1,5 @@
 export interface TerminalAPI {
-  create: (terminalId: string) => Promise<{ success: boolean }>;
+  create: (terminalId: string, workingDir: string) => Promise<{ success: boolean }>;
   onData: (terminalId: string, callback: (data: string) => void) => void;
   sendData: (terminalId: string, data: string) => void;
   resize: (terminalId: string, cols: number, rows: number) => void;

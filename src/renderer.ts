@@ -31,12 +31,13 @@ import { TerminalManager } from './components/TerminalManager';
 
 // Wait for DOM to be ready
 window.addEventListener('DOMContentLoaded', () => {
+  const groupSidebarContainer = document.getElementById('group-sidebar');
   const tabBarContainer = document.getElementById('tab-bar');
   const terminalsContainer = document.getElementById('terminals-container');
 
-  if (tabBarContainer && terminalsContainer) {
-    new TerminalManager(tabBarContainer, terminalsContainer);
-    console.log('Terminal Manager initialized');
+  if (groupSidebarContainer && tabBarContainer && terminalsContainer) {
+    new TerminalManager(groupSidebarContainer, tabBarContainer, terminalsContainer);
+    console.log('Terminal Manager initialized with groups');
   } else {
     console.error('Required containers not found');
   }

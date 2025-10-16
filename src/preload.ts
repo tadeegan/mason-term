@@ -5,7 +5,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { TerminalAPI } from './types/terminal';
 
 const terminalAPI: TerminalAPI = {
-  create: (terminalId: string) => ipcRenderer.invoke('terminal:create', terminalId),
+  create: (terminalId: string, workingDir: string) =>
+    ipcRenderer.invoke('terminal:create', terminalId, workingDir),
   onData: (terminalId: string, callback: (data: string) => void) => {
     ipcRenderer.on(`terminal:data:${terminalId}`, (_, data: string) => callback(data));
   },

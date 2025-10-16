@@ -2,6 +2,7 @@ export interface Tab {
   id: string;
   title: string;
   isActive: boolean;
+  groupId: string;
 }
 
 export interface TabState {

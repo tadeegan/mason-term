@@ -7,10 +7,12 @@ export class Terminal {
   private fitAddon: FitAddon;
   private container: HTMLElement;
   private terminalId: string;
+  private workingDir: string;
 
-  constructor(container: HTMLElement, terminalId: string) {
+  constructor(container: HTMLElement, terminalId: string, workingDir: string) {
     this.container = container;
     this.terminalId = terminalId;
+    this.workingDir = workingDir;
 
     // Create xterm instance
     this.xterm = new XTerm({
@@ -60,8 +62,8 @@ export class Terminal {
 
   private async initializeTerminal(): Promise<void> {
     try {
-      await window.terminalAPI.create(this.terminalId);
-      console.log(`Terminal ${this.terminalId} process created successfully`);
+      await window.terminalAPI.create(this.terminalId, this.workingDir);
+      console.log(`Terminal ${this.terminalId} process created successfully in ${this.workingDir}`);
     } catch (error) {
       console.error(`Failed to create terminal ${this.terminalId} process:`, error);
     }
