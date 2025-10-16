@@ -70,6 +70,12 @@ window.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         terminalManager.handleNewGroupShortcut();
       }
+
+      // Cmd/Ctrl + W: Close Tab
+      if (cmdOrCtrl && e.key === 'w') {
+        e.preventDefault();
+        terminalManager.handleCloseTabShortcut();
+      }
     });
 
     console.log('Terminal Manager initialized with groups');

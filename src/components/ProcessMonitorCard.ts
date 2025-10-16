@@ -199,6 +199,9 @@ export class ProcessMonitorCard {
 
     html += '</div>';
 
-    this.card.innerHTML = html;
+    // Check if card still exists before updating (might have been hidden during async operations)
+    if (this.card) {
+      this.card.innerHTML = html;
+    }
   }
 }

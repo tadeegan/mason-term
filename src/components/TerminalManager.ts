@@ -27,6 +27,7 @@ export class TerminalManager {
     this.groupSidebar = new GroupSidebar(groupSidebarContainer, appContainer, {
       onGroupSelect: (groupId) => this.switchGroup(groupId),
       onNewGroup: () => this.createNewGroup(),
+      onGroupRename: (groupId, newTitle) => this.renameGroup(groupId, newTitle),
     });
 
     this.tabBar = new TabBar(tabBarContainer, {
@@ -50,7 +51,7 @@ export class TerminalManager {
     return '~';
   }
 
-  private createGroup(title: string, workingDir: string): void {
+  private createGroup(title: string, workingDir: string, createTab: boolean = true): void {
     const groupId = `group-${++this.groupCounter}`;
 
     const group: Group = {
@@ -62,8 +63,13 @@ export class TerminalManager {
 
     this.groups.push(group);
 
-    // Switch to new group and create first tab
+    // Switch to new group
     this.switchGroup(groupId);
+
+    // Create initial tab if requested
+    if (createTab) {
+      this.createNewTab();
+    }
   }
 
   private createNewGroup(): void {
@@ -115,9 +121,11 @@ export class TerminalManager {
     // Get tabs for this group
     const groupTabs = this.tabs.filter((tab) => tab.groupId === groupId);
 
-    // If group has no tabs, create one
+    // If group has no tabs, show empty workspace
     if (groupTabs.length === 0) {
-      this.createNewTab();
+      this.activeTabId = null;
+      this.showEmptyWorkspace();
+      this.render();
       return;
     }
 
@@ -129,6 +137,9 @@ export class TerminalManager {
   private switchTab(tabId: string): void {
     const tab = this.tabs.find((t) => t.id === tabId);
     if (!tab) return;
+
+    // Hide empty workspace
+    this.hideEmptyWorkspace();
 
     // Update tabs - only mark tabs in current group as active/inactive
     this.tabs = this.tabs.map((t) => ({
@@ -158,11 +169,6 @@ export class TerminalManager {
     // Get tabs in current group
     const groupTabs = this.tabs.filter((t) => t.groupId === tab.groupId);
 
-    // Don't close if it's the last tab in the group
-    if (groupTabs.length === 1) {
-      return;
-    }
-
     // Find tab index in all tabs
     const tabIndex = this.tabs.findIndex((t) => t.id === tabId);
     if (tabIndex === -1) return;
@@ -183,6 +189,14 @@ export class TerminalManager {
     // Remove tab
     this.tabs.splice(tabIndex, 1);
 
+    // If this was the last tab in the group, show empty workspace
+    if (groupTabs.length === 1) {
+      this.activeTabId = null;
+      this.showEmptyWorkspace();
+      this.render();
+      return;
+    }
+
     // Switch to adjacent tab if we closed the active tab
     if (tabId === this.activeTabId) {
       const updatedGroupTabs = this.tabs.filter((t) => t.groupId === tab.groupId);
@@ -192,6 +206,100 @@ export class TerminalManager {
         const newIndex = Math.max(0, Math.min(groupIndex, updatedGroupTabs.length - 1));
         this.switchTab(updatedGroupTabs[newIndex].id);
       }
+    } else {
+      this.render();
+    }
+  }
+
+  private showEmptyWorkspace(): void {
+    // Hide all terminals
+    this.terminals.forEach((terminal) => {
+      terminal.hide();
+    });
+
+    // Create or show empty workspace UI
+    let emptyWorkspace = document.getElementById('empty-workspace');
+    if (!emptyWorkspace) {
+      emptyWorkspace = document.createElement('div');
+      emptyWorkspace.id = 'empty-workspace';
+      emptyWorkspace.className = 'empty-workspace';
+
+      const content = document.createElement('div');
+      content.className = 'empty-workspace-content';
+
+      const icon = document.createElement('div');
+      icon.className = 'empty-workspace-icon';
+      icon.textContent = '⌨';
+
+      const message = document.createElement('div');
+      message.className = 'empty-workspace-message';
+      message.textContent = 'No terminals in this workspace';
+
+      const hint = document.createElement('div');
+      hint.className = 'empty-workspace-hint';
+      hint.textContent = 'Press ⌘T to create a new terminal or ⌘W to close this workspace';
+
+      content.appendChild(icon);
+      content.appendChild(message);
+      content.appendChild(hint);
+      emptyWorkspace.appendChild(content);
+      this.terminalContainer.appendChild(emptyWorkspace);
+    } else {
+      emptyWorkspace.style.display = 'flex';
+    }
+  }
+
+  private hideEmptyWorkspace(): void {
+    const emptyWorkspace = document.getElementById('empty-workspace');
+    if (emptyWorkspace) {
+      emptyWorkspace.style.display = 'none';
+    }
+  }
+
+  private renameGroup(groupId: string, newTitle: string): void {
+    this.groups = this.groups.map((group) => {
+      if (group.id === groupId) {
+        return { ...group, title: newTitle };
+      }
+      return group;
+    });
+    this.render();
+  }
+
+  private closeGroup(groupId: string): void {
+    // If this is the last group, close the app
+    if (this.groups.length === 1) {
+      window.terminalAPI.closeWindow();
+      return;
+    }
+
+    // Remove all tabs from this group
+    const groupTabs = this.tabs.filter((t) => t.groupId === groupId);
+    groupTabs.forEach((tab) => {
+      const terminal = this.terminals.get(tab.id);
+      if (terminal) {
+        terminal.dispose();
+        this.terminals.delete(tab.id);
+      }
+      const terminalDiv = document.getElementById(`terminal-${tab.id}`);
+      if (terminalDiv) {
+        terminalDiv.remove();
+      }
+    });
+
+    // Remove tabs
+    this.tabs = this.tabs.filter((t) => t.groupId !== groupId);
+
+    // Remove group
+    const groupIndex = this.groups.findIndex((g) => g.id === groupId);
+    if (groupIndex !== -1) {
+      this.groups.splice(groupIndex, 1);
+    }
+
+    // Switch to adjacent group
+    if (groupId === this.activeGroupId) {
+      const newIndex = Math.max(0, Math.min(groupIndex, this.groups.length - 1));
+      this.switchGroup(this.groups[newIndex].id);
     } else {
       this.render();
     }
@@ -245,5 +353,15 @@ export class TerminalManager {
   // Public method for keyboard shortcut: Cmd+N (new group)
   public handleNewGroupShortcut(): void {
     this.createNewGroup();
+  }
+
+  // Public method for keyboard shortcut: Cmd+W (close tab)
+  public handleCloseTabShortcut(): void {
+    if (this.activeTabId) {
+      this.closeTab(this.activeTabId);
+    } else if (this.activeGroupId) {
+      // No active tab means we're in empty workspace, close the group
+      this.closeGroup(this.activeGroupId);
+    }
   }
 }

@@ -313,6 +313,14 @@ if [ -f ~/.zshrc ]; then source ~/.zshrc; fi
       };
     }
   });
+
+  // Handle window close request
+  ipcMain.on('window:close', () => {
+    const mainWindow = BrowserWindow.getAllWindows()[0];
+    if (mainWindow) {
+      mainWindow.close();
+    }
+  });
 };
 
 // This method will be called when Electron has finished

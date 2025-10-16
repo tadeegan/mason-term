@@ -6,6 +6,7 @@ export class GroupSidebar {
   private container: HTMLElement;
   private onGroupSelect: (groupId: string) => void;
   private onNewGroup: () => void;
+  private onGroupRename: (groupId: string, newTitle: string) => void;
   private processMonitorCard: ProcessMonitorCard;
   private allTabs: Tab[] = [];
   private updateInterval: NodeJS.Timeout | null = null;
@@ -17,11 +18,13 @@ export class GroupSidebar {
     callbacks: {
       onGroupSelect: (groupId: string) => void;
       onNewGroup: () => void;
+      onGroupRename: (groupId: string, newTitle: string) => void;
     }
   ) {
     this.container = container;
     this.onGroupSelect = callbacks.onGroupSelect;
     this.onNewGroup = callbacks.onNewGroup;
+    this.onGroupRename = callbacks.onGroupRename;
     this.processMonitorCard = new ProcessMonitorCard(appContainer);
 
     // Update group stats every 3 seconds
@@ -31,6 +34,35 @@ export class GroupSidebar {
 
     // Add resize handle
     this.setupResizeHandle();
+
+    // Setup event delegation for double-click on group titles
+    this.setupEventDelegation();
+  }
+
+  private setupEventDelegation(): void {
+    // Use event delegation so listeners persist across re-renders
+    this.container.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+
+      // Check if the click was on the rename icon
+      if (target.classList.contains('group-rename-icon')) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Find the group element and get the group ID
+        const groupElement = target.closest('.group-item') as HTMLElement;
+        if (groupElement) {
+          const groupId = groupElement.getAttribute('data-group-id');
+          if (groupId) {
+            // Get the group title from the element
+            const titleElement = groupElement.querySelector('.group-title') as HTMLElement;
+            const currentTitle = titleElement?.textContent || '';
+
+            this.startEditingGroupName(titleElement, { id: groupId, title: currentTitle } as Group);
+          }
+        }
+      }
+    });
   }
 
   private setupResizeHandle(): void {
@@ -92,6 +124,11 @@ export class GroupSidebar {
       }
     }
 
+    // Create header
+    const header = document.createElement('div');
+    header.className = 'groups-header';
+    header.textContent = 'Groups';
+
     // Create groups list container
     const groupsList = document.createElement('div');
     groupsList.className = 'groups-list';
@@ -120,6 +157,7 @@ export class GroupSidebar {
     newGroupContainer.appendChild(shortcutHint);
 
     // Insert before resize handle
+    this.container.insertBefore(header, this.resizeHandle);
     this.container.insertBefore(groupsList, this.resizeHandle);
     this.container.insertBefore(newGroupContainer, this.resizeHandle);
 
@@ -143,9 +181,22 @@ export class GroupSidebar {
       this.processMonitorCard.hide();
     };
 
+    // Create title row container
+    const titleRow = document.createElement('div');
+    titleRow.className = 'group-title-row';
+
     const titleElement = document.createElement('div');
     titleElement.className = 'group-title';
     titleElement.textContent = group.title;
+
+    // Add rename icon
+    const renameIcon = document.createElement('span');
+    renameIcon.className = 'group-rename-icon';
+    renameIcon.textContent = '✏️';
+    renameIcon.title = 'Rename group';
+
+    titleRow.appendChild(titleElement);
+    titleRow.appendChild(renameIcon);
 
     const dirElement = document.createElement('div');
     dirElement.className = 'group-dir';
@@ -157,7 +208,7 @@ export class GroupSidebar {
     statsElement.className = 'group-stats';
     statsElement.setAttribute('data-group-stats', group.id);
 
-    groupElement.appendChild(titleElement);
+    groupElement.appendChild(titleRow);
     groupElement.appendChild(dirElement);
     groupElement.appendChild(statsElement);
 
@@ -176,6 +227,12 @@ export class GroupSidebar {
       const groupTabs = this.allTabs.filter((tab) => tab.groupId === groupId);
       if (groupTabs.length === 0) continue;
 
+      // Get stats element and add loading state
+      const statsElement = groupElement.querySelector(`[data-group-stats="${groupId}"]`);
+      if (statsElement) {
+        statsElement.classList.add('loading');
+      }
+
       // Fetch process info for all tabs in this group
       const processInfoPromises = groupTabs.map((tab) =>
         window.terminalAPI.getProcessInfo(tab.id).then((info) => info)
@@ -184,7 +241,12 @@ export class GroupSidebar {
       const allProcessInfo = await Promise.all(processInfoPromises);
       const validInfo = allProcessInfo.filter((info) => info !== null);
 
-      if (validInfo.length === 0) continue;
+      if (validInfo.length === 0) {
+        if (statsElement) {
+          statsElement.classList.remove('loading');
+        }
+        continue;
+      }
 
       // Calculate totals
       let totalMemory = 0;
@@ -197,9 +259,10 @@ export class GroupSidebar {
         }
       });
 
-      // Update the stats element
-      const statsElement = groupElement.querySelector(`[data-group-stats="${groupId}"]`);
+      // Update the stats element and remove loading state
       if (statsElement) {
+        statsElement.classList.remove('loading');
+
         const portsArray = Array.from(allPorts).sort((a, b) => a - b);
         const memoryText = totalMemory > 0 ? `${totalMemory.toFixed(0)}MB` : '';
         const portsText = portsArray.length > 0 ? `:${portsArray.join(',')}` : '';
@@ -211,6 +274,73 @@ export class GroupSidebar {
         }
       }
     }
+  }
+
+  private startEditingGroupName(titleElement: HTMLElement, group: Group): void {
+    const currentTitle = group.title;
+    console.log('Starting edit for group:', currentTitle);
+
+    // Create custom modal dialog
+    const modal = document.createElement('div');
+    modal.className = 'rename-modal';
+    modal.innerHTML = `
+      <div class="rename-modal-content">
+        <h3>Rename Group</h3>
+        <input type="text" class="rename-input" value="${currentTitle}" />
+        <div class="rename-buttons">
+          <button class="rename-cancel">Cancel</button>
+          <button class="rename-save">Save</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const input = modal.querySelector('.rename-input') as HTMLInputElement;
+    const saveBtn = modal.querySelector('.rename-save') as HTMLButtonElement;
+    const cancelBtn = modal.querySelector('.rename-cancel') as HTMLButtonElement;
+
+    // Focus and select the input
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 0);
+
+    const closeModal = () => {
+      modal.remove();
+    };
+
+    const saveRename = () => {
+      const newTitle = input.value.trim();
+      console.log('User entered:', newTitle);
+
+      if (newTitle && newTitle !== currentTitle) {
+        console.log('Renaming group from', currentTitle, 'to', newTitle);
+        this.onGroupRename(group.id, newTitle);
+      }
+      closeModal();
+    };
+
+    // Event listeners
+    saveBtn.addEventListener('click', saveRename);
+    cancelBtn.addEventListener('click', closeModal);
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveRename();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeModal();
+      }
+    });
+
+    // Close on background click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
   }
 
   private shortenPath(path: string): string {

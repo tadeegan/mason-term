@@ -26,6 +26,7 @@ const terminalAPI: TerminalAPI = {
   },
   getProcessInfo: (terminalId: string) =>
     ipcRenderer.invoke('terminal:getProcessInfo', terminalId),
+  closeWindow: () => ipcRenderer.send('window:close'),
 };
 
 contextBridge.exposeInMainWorld('terminalAPI', terminalAPI);

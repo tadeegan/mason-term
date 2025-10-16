@@ -8,6 +8,7 @@ export interface TerminalAPI {
   onExit: (terminalId: string, callback: (code: number) => void) => void;
   onMasonCommand: (callback: (command: string, path: string) => void) => void;
   getProcessInfo: (terminalId: string) => Promise<ProcessInfo | null>;
+  closeWindow: () => void;
 }
 
 declare global {
