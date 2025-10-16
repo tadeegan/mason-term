@@ -13,8 +13,8 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 
-// Store PTY instance
-let ptyProcess: pty.IPty | null = null;
+// Store PTY instances for multiple terminals
+const ptyProcesses = new Map<string, pty.IPty>();
 
 const createWindow = (): void => {
   // Create the browser window.
@@ -41,12 +41,14 @@ const setupTerminalHandlers = () => {
   const shell = process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || '/bin/bash';
 
   // Create terminal process
-  ipcMain.handle('terminal:create', () => {
-    if (ptyProcess) {
-      ptyProcess.kill();
+  ipcMain.handle('terminal:create', (_, terminalId: string) => {
+    // Clean up existing process if it exists
+    if (ptyProcesses.has(terminalId)) {
+      ptyProcesses.get(terminalId)?.kill();
+      ptyProcesses.delete(terminalId);
     }
 
-    ptyProcess = pty.spawn(shell, [], {
+    const ptyProcess = pty.spawn(shell, [], {
       name: 'xterm-color',
       cols: 80,
       rows: 24,
@@ -54,29 +56,33 @@ const setupTerminalHandlers = () => {
       env: process.env as { [key: string]: string },
     });
 
+    ptyProcesses.set(terminalId, ptyProcess);
+
     // Send data from PTY to renderer
     ptyProcess.onData((data: string) => {
-      BrowserWindow.getAllWindows()[0]?.webContents.send('terminal:data', data);
+      BrowserWindow.getAllWindows()[0]?.webContents.send(`terminal:data:${terminalId}`, data);
     });
 
     // Handle process exit
     ptyProcess.onExit(({ exitCode }) => {
-      BrowserWindow.getAllWindows()[0]?.webContents.send('terminal:exit', exitCode);
-      ptyProcess = null;
+      BrowserWindow.getAllWindows()[0]?.webContents.send(`terminal:exit:${terminalId}`, exitCode);
+      ptyProcesses.delete(terminalId);
     });
 
     return { success: true };
   });
 
   // Handle input from renderer
-  ipcMain.on('terminal:input', (_, data: string) => {
+  ipcMain.on('terminal:input', (_, terminalId: string, data: string) => {
+    const ptyProcess = ptyProcesses.get(terminalId);
     if (ptyProcess) {
       ptyProcess.write(data);
     }
   });
 
   // Handle resize
-  ipcMain.on('terminal:resize', (_, cols: number, rows: number) => {
+  ipcMain.on('terminal:resize', (_, terminalId: string, cols: number, rows: number) => {
+    const ptyProcess = ptyProcesses.get(terminalId);
     if (ptyProcess) {
       ptyProcess.resize(cols, rows);
     }

@@ -1,9 +1,9 @@
 export interface TerminalAPI {
-  create: () => Promise<{ success: boolean }>;
-  onData: (callback: (data: string) => void) => void;
-  sendData: (data: string) => void;
-  resize: (cols: number, rows: number) => void;
-  onExit: (callback: (code: number) => void) => void;
+  create: (terminalId: string) => Promise<{ success: boolean }>;
+  onData: (terminalId: string, callback: (data: string) => void) => void;
+  sendData: (terminalId: string, data: string) => void;
+  resize: (terminalId: string, cols: number, rows: number) => void;
+  onExit: (terminalId: string, callback: (code: number) => void) => void;
 }
 
 declare global {

@@ -27,18 +27,17 @@
  */
 
 import './index.css';
-import { Terminal } from './components/Terminal';
+import { TerminalManager } from './components/TerminalManager';
 
 // Wait for DOM to be ready
 window.addEventListener('DOMContentLoaded', () => {
-  const container = document.getElementById('terminal-container');
+  const tabBarContainer = document.getElementById('tab-bar');
+  const terminalsContainer = document.getElementById('terminals-container');
 
-  if (container) {
-    const terminal = new Terminal(container);
-    terminal.focus();
-
-    console.log('Terminal initialized');
+  if (tabBarContainer && terminalsContainer) {
+    new TerminalManager(tabBarContainer, terminalsContainer);
+    console.log('Terminal Manager initialized');
   } else {
-    console.error('Terminal container not found');
+    console.error('Required containers not found');
   }
 });

@@ -6,9 +6,11 @@ export class Terminal {
   private xterm: XTerm;
   private fitAddon: FitAddon;
   private container: HTMLElement;
+  private terminalId: string;
 
-  constructor(container: HTMLElement) {
+  constructor(container: HTMLElement, terminalId: string) {
     this.container = container;
+    this.terminalId = terminalId;
 
     // Create xterm instance
     this.xterm = new XTerm({
@@ -58,26 +60,26 @@ export class Terminal {
 
   private async initializeTerminal(): Promise<void> {
     try {
-      await window.terminalAPI.create();
-      console.log('Terminal process created successfully');
+      await window.terminalAPI.create(this.terminalId);
+      console.log(`Terminal ${this.terminalId} process created successfully`);
     } catch (error) {
-      console.error('Failed to create terminal process:', error);
+      console.error(`Failed to create terminal ${this.terminalId} process:`, error);
     }
   }
 
   private setupListeners(): void {
     // Send input to backend
     this.xterm.onData((data: string) => {
-      window.terminalAPI.sendData(data);
+      window.terminalAPI.sendData(this.terminalId, data);
     });
 
     // Receive output from backend
-    window.terminalAPI.onData((data: string) => {
+    window.terminalAPI.onData(this.terminalId, (data: string) => {
       this.xterm.write(data);
     });
 
     // Handle terminal exit
-    window.terminalAPI.onExit((code: number) => {
+    window.terminalAPI.onExit(this.terminalId, (code: number) => {
       this.xterm.write(`\r\n\r\nProcess exited with code ${code}\r\n`);
     });
   }
@@ -85,7 +87,19 @@ export class Terminal {
   public fit(): void {
     this.fitAddon.fit();
     const { cols, rows } = this.xterm;
-    window.terminalAPI.resize(cols, rows);
+    window.terminalAPI.resize(this.terminalId, cols, rows);
+  }
+
+  public show(): void {
+    this.container.style.display = 'block';
+  }
+
+  public hide(): void {
+    this.container.style.display = 'none';
+  }
+
+  public getId(): string {
+    return this.terminalId;
   }
 
   public focus(): void {

@@ -5,18 +5,18 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { TerminalAPI } from './types/terminal';
 
 const terminalAPI: TerminalAPI = {
-  create: () => ipcRenderer.invoke('terminal:create'),
-  onData: (callback: (data: string) => void) => {
-    ipcRenderer.on('terminal:data', (_, data: string) => callback(data));
+  create: (terminalId: string) => ipcRenderer.invoke('terminal:create', terminalId),
+  onData: (terminalId: string, callback: (data: string) => void) => {
+    ipcRenderer.on(`terminal:data:${terminalId}`, (_, data: string) => callback(data));
   },
-  sendData: (data: string) => {
-    ipcRenderer.send('terminal:input', data);
+  sendData: (terminalId: string, data: string) => {
+    ipcRenderer.send('terminal:input', terminalId, data);
   },
-  resize: (cols: number, rows: number) => {
-    ipcRenderer.send('terminal:resize', cols, rows);
+  resize: (terminalId: string, cols: number, rows: number) => {
+    ipcRenderer.send('terminal:resize', terminalId, cols, rows);
   },
-  onExit: (callback: (code: number) => void) => {
-    ipcRenderer.on('terminal:exit', (_, code: number) => callback(code));
+  onExit: (terminalId: string, callback: (code: number) => void) => {
+    ipcRenderer.on(`terminal:exit:${terminalId}`, (_, code: number) => callback(code));
   },
 };
 
