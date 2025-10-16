@@ -52,6 +52,24 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    // Setup keyboard shortcuts
+    document.addEventListener('keydown', (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+      // Cmd/Ctrl + T: New Tab
+      if (cmdOrCtrl && e.key === 't') {
+        e.preventDefault();
+        terminalManager.handleNewTabShortcut();
+      }
+
+      // Cmd/Ctrl + N: New Group
+      if (cmdOrCtrl && e.key === 'n') {
+        e.preventDefault();
+        terminalManager.handleNewGroupShortcut();
+      }
+    });
+
     console.log('Terminal Manager initialized with groups');
   } else {
     console.error('Required containers not found');

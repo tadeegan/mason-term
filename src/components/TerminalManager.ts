@@ -215,4 +215,14 @@ export class TerminalManager {
     const title = pathParts.length > 0 ? pathParts[pathParts.length - 1] : 'New Group';
     this.createGroup(title, workingDir);
   }
+
+  // Public method for keyboard shortcut: Cmd+T (new tab)
+  public handleNewTabShortcut(): void {
+    this.createNewTab();
+  }
+
+  // Public method for keyboard shortcut: Cmd+N (new group)
+  public handleNewGroupShortcut(): void {
+    this.createNewGroup();
+  }
 }
