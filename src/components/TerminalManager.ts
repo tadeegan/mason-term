@@ -216,6 +216,27 @@ export class TerminalManager {
     this.createGroup(title, workingDir);
   }
 
+  // Public method to handle mason set command
+  public handleMasonSet(workingDir: string): void {
+    console.log(`Setting current group working directory to: ${workingDir}`);
+
+    if (!this.activeGroupId) {
+      console.warn('No active group to set working directory');
+      return;
+    }
+
+    // Update the active group's working directory
+    this.groups = this.groups.map((group) => {
+      if (group.id === this.activeGroupId) {
+        return { ...group, workingDir };
+      }
+      return group;
+    });
+
+    // Re-render to show updated directory
+    this.render();
+  }
+
   // Public method for keyboard shortcut: Cmd+T (new tab)
   public handleNewTabShortcut(): void {
     this.createNewTab();

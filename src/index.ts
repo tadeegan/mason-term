@@ -101,6 +101,9 @@ mason() {
       abs_path="$(cd "$2" 2>/dev/null && pwd)" || abs_path="$PWD/$2"
     fi
     printf '\\033]1337;MasonCommand=new-group;Path=%s\\007' "$abs_path"
+  elif [ "$1" = "set" ]; then
+    # Set current group's working directory to PWD
+    printf '\\033]1337;MasonCommand=set;Path=%s\\007' "$PWD"
   fi
 }
 # Source user's rc file if it exists

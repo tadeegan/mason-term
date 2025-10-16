@@ -49,6 +49,8 @@ window.addEventListener('DOMContentLoaded', () => {
       console.log(`Mason command received: ${command} ${path}`);
       if (command === 'new-group') {
         terminalManager.handleMasonNewGroup(path);
+      } else if (command === 'set') {
+        terminalManager.handleMasonSet(path);
       }
     });
 
