@@ -45,7 +45,22 @@ const createWindow = (): void => {
 // Setup IPC handlers for terminal - must be before window creation
 const setupTerminalHandlers = () => {
   // Determine shell based on OS
-  const shell = process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || '/bin/bash';
+  let shell = process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || '/bin/zsh';
+
+  // Validate shell exists
+  if (process.platform !== 'win32') {
+    const commonShells = [shell, '/bin/zsh', '/bin/bash', '/bin/sh'];
+    shell = '';
+    for (const testShell of commonShells) {
+      if (fs.existsSync(testShell)) {
+        shell = testShell;
+        break;
+      }
+    }
+    if (!shell) {
+      shell = '/bin/sh'; // Ultimate fallback
+    }
+  }
 
   // Helper function to parse mason escape sequences from terminal output
   const parseMasonCommand = (data: string): { command: string; path: string } | null => {
@@ -73,60 +88,27 @@ const setupTerminalHandlers = () => {
     // Expand ~ to home directory
     let actualWorkingDir = workingDir;
     if (workingDir === '~' || workingDir.startsWith('~/')) {
-      const home = process.env.HOME || process.env.USERPROFILE || '';
-      actualWorkingDir = home + workingDir.substring(1);
+      const home = os.homedir();
+      if (workingDir === '~') {
+        actualWorkingDir = home;
+      } else {
+        actualWorkingDir = home + workingDir.substring(1);
+      }
     }
 
-    console.log(`Creating terminal ${terminalId} with cwd: ${actualWorkingDir}`);
+    // Verify the directory exists and is accessible
+    if (!fs.existsSync(actualWorkingDir)) {
+      // Fallback to home directory
+      actualWorkingDir = os.homedir();
+    }
 
     try {
       // Prepare environment with PROMPT_COMMAND or precmd for bash/zsh
       const env = { ...(process.env as { [key: string]: string }) };
 
-      // For bash/zsh, we'll use shell arguments to source the mason function
-      let shellArgs: string[] = [];
-      if (process.platform !== 'win32') {
-        // For bash/zsh, use --init-file or --rcfile to inject our function
-        // We'll write the function definition and then source the normal rc file
-        const initScript = `
-mason() {
-  if [ "$1" = "new-group" ]; then
-    # Convert relative path to absolute path
-    local abs_path
-    if [[ "$2" = /* ]]; then
-      # Already absolute
-      abs_path="$2"
-    else
-      # Make it absolute relative to PWD
-      abs_path="$(cd "$2" 2>/dev/null && pwd)" || abs_path="$PWD/$2"
-    fi
-    printf '\\033]1337;MasonCommand=new-group;Path=%s\\007' "$abs_path"
-  elif [ "$1" = "set" ]; then
-    # Set current group's working directory to PWD
-    printf '\\033]1337;MasonCommand=set;Path=%s\\007' "$PWD"
-  fi
-}
-# Source user's rc file if it exists
-if [ -f ~/.bashrc ]; then source ~/.bashrc; fi
-if [ -f ~/.zshrc ]; then source ~/.zshrc; fi
-`;
-        // Write init script to temp file
-        const tmpDir = os.tmpdir();
-        const initFile = path.join(tmpDir, `.mason_init_${terminalId}`);
-        fs.writeFileSync(initFile, initScript);
-
-        // Use --rcfile for bash, or ENV for other shells
-        if (shell.includes('bash')) {
-          shellArgs = ['--rcfile', initFile, '-i'];
-        } else if (shell.includes('zsh')) {
-          env.ZDOTDIR = tmpDir;
-          const zshrc = path.join(tmpDir, '.zshrc');
-          fs.writeFileSync(zshrc, initScript);
-        } else {
-          // For other shells, just use default
-          shellArgs = [];
-        }
-      }
+      // For now, spawn shell without custom init script
+      // TODO: Add mason shell function injection
+      const shellArgs: string[] = [];
 
       const ptyProcess = pty.spawn(shell, shellArgs, {
         name: 'xterm-color',
@@ -182,9 +164,17 @@ if [ -f ~/.zshrc ]; then source ~/.zshrc; fi
         }
       });
 
+      console.log(`=== TERMINAL CREATE SUCCESS ===`);
       console.log(`Terminal ${terminalId} created successfully`);
     } catch (error) {
-      console.error(`Failed to create terminal ${terminalId}:`, error);
+      console.error(`=== TERMINAL CREATE FAILED ===`);
+      console.error(`Failed to create terminal ${terminalId}:`);
+      console.error(`Error name: ${error.name}`);
+      console.error(`Error message: ${error.message}`);
+      console.error(`Error stack:`, error.stack);
+      if (error.code) console.error(`Error code: ${error.code}`);
+      if (error.errno) console.error(`Error errno: ${error.errno}`);
+      if (error.syscall) console.error(`Error syscall: ${error.syscall}`);
       throw error;
     }
 

@@ -7,15 +7,62 @@ import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-nati
 import { WebpackPlugin } from '@electron-forge/plugin-webpack';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
+import * as path from 'path';
+import * as fs from 'fs';
 
 import { mainConfig } from './webpack.main.config';
 import { rendererConfig } from './webpack.renderer.config';
 
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true,
+    asar: {
+      unpack: '{**/*.node,**/spawn-helper}',
+    },
   },
   rebuildConfig: {},
+  hooks: {
+    postPackage: async (forgeConfig, options) => {
+      console.log('Running postPackage hook to unpack spawn-helper...');
+      const { outputPaths, platform } = options;
+
+      for (const outputPath of outputPaths) {
+        // Find the .app bundle (macOS) or the executable directory
+        let appPath = outputPath;
+        if (platform === 'darwin') {
+          // outputPath is like out/mason-app-darwin-arm64
+          // We need to find the .app bundle inside it
+          const files = fs.readdirSync(outputPath);
+          const appBundle = files.find(f => f.endsWith('.app'));
+          if (appBundle) {
+            appPath = path.join(outputPath, appBundle);
+          }
+        }
+
+        const asarPath = path.join(appPath, 'Contents', 'Resources', 'app.asar');
+        const unpackedPath = path.join(appPath, 'Contents', 'Resources', 'app.asar.unpacked');
+        const spawnHelperInAsar = '.webpack/build/Release/spawn-helper';
+        const spawnHelperDest = path.join(unpackedPath, spawnHelperInAsar);
+
+        console.log(`Looking for ASAR at: ${asarPath}`);
+
+        // Extract spawn-helper from ASAR
+        const asar = require('@electron/asar');
+        try {
+          const spawnHelperBuffer = asar.extractFile(asarPath, spawnHelperInAsar);
+
+          // Create directory and write file
+          fs.mkdirSync(path.dirname(spawnHelperDest), { recursive: true });
+          fs.writeFileSync(spawnHelperDest, spawnHelperBuffer);
+          fs.chmodSync(spawnHelperDest, 0o755);
+
+          console.log(`Successfully unpacked spawn-helper to ${spawnHelperDest}`);
+        } catch (error) {
+          console.error('Failed to unpack spawn-helper:', error);
+          throw error;
+        }
+      }
+    },
+  },
   makers: [
     new MakerSquirrel({}),
     new MakerZIP({}, ['darwin']),
@@ -70,7 +117,8 @@ const config: ForgeConfig = {
       [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
       [FuseV1Options.EnableNodeCliInspectArguments]: false,
       [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
-      [FuseV1Options.OnlyLoadAppFromAsar]: true,
+      // Must be false so the native spawn-helper can load from app.asar.unpacked
+      [FuseV1Options.OnlyLoadAppFromAsar]: false,
     }),
   ],
 };
