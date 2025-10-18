@@ -290,22 +290,6 @@ html, body {
   min-height: 14px;
 }
 
-.group-stats.loading {
-  opacity: 0.5;
-}
-
-.group-stats.loading::after {
-  content: '⋯';
-  animation: loading-dots 1.4s infinite;
-  margin-left: 4px;
-}
-
-@keyframes loading-dots {
-  0%, 20% { content: '⋯'; }
-  40% { content: '⋯⋯'; }
-  60%, 100% { content: '⋯⋯⋯'; }
-}
-
 .new-group-container {
   display: flex;
   align-items: center;

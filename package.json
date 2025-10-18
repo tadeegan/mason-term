@@ -1,7 +1,7 @@
 {
   "name": "mason-app",
   "productName": "mason-app",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "My Electron application description",
   "main": ".webpack/main",
   "scripts": {

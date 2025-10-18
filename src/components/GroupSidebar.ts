@@ -264,13 +264,11 @@ export class GroupSidebar {
       const groupTabs = this.allTabs.filter((tab) => tab.groupId === groupId);
       if (groupTabs.length === 0) continue;
 
-      // Get stats element and add loading state
+      // Get stats element (no loading state to avoid flickering)
       const statsElement = groupElement.querySelector(`[data-group-stats="${groupId}"]`);
-      if (statsElement) {
-        statsElement.classList.add('loading');
-      }
+      if (!statsElement) continue;
 
-      // Fetch process info for all tabs in this group
+      // Fetch process info for all tabs in this group in the background
       const processInfoPromises = groupTabs.map((tab) =>
         window.terminalAPI.getProcessInfo(tab.id).then((info) => info)
       );
@@ -279,9 +277,6 @@ export class GroupSidebar {
       const validInfo = allProcessInfo.filter((info) => info !== null);
 
       if (validInfo.length === 0) {
-        if (statsElement) {
-          statsElement.classList.remove('loading');
-        }
         continue;
       }
 
@@ -296,19 +291,15 @@ export class GroupSidebar {
         }
       });
 
-      // Update the stats element and remove loading state
-      if (statsElement) {
-        statsElement.classList.remove('loading');
+      // Update the stats element silently (no loading state)
+      const portsArray = Array.from(allPorts).sort((a, b) => a - b);
+      const memoryText = totalMemory > 0 ? `${totalMemory.toFixed(0)}MB` : '';
+      const portsText = portsArray.length > 0 ? `:${portsArray.join(',')}` : '';
 
-        const portsArray = Array.from(allPorts).sort((a, b) => a - b);
-        const memoryText = totalMemory > 0 ? `${totalMemory.toFixed(0)}MB` : '';
-        const portsText = portsArray.length > 0 ? `:${portsArray.join(',')}` : '';
-
-        if (memoryText || portsText) {
-          statsElement.textContent = `${memoryText}${memoryText && portsText ? ' ' : ''}${portsText}`;
-        } else {
-          statsElement.textContent = '';
-        }
+      if (memoryText || portsText) {
+        statsElement.textContent = `${memoryText}${memoryText && portsText ? ' ' : ''}${portsText}`;
+      } else {
+        statsElement.textContent = '';
       }
     }
   }
