@@ -26,6 +26,8 @@ const terminalAPI: TerminalAPI = {
   },
   getProcessInfo: (terminalId: string) =>
     ipcRenderer.invoke('terminal:getProcessInfo', terminalId),
+  getGitBranch: (workingDir: string) =>
+    ipcRenderer.invoke('git:getBranch', workingDir),
   closeWindow: () => ipcRenderer.send('window:close'),
 };
 

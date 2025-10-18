@@ -3,6 +3,7 @@ export interface Group {
   title: string;
   workingDir: string;
   isActive: boolean;
+  gitBranch?: string | null;
 }
 
 export interface GroupState {

@@ -248,12 +248,37 @@ html, body {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-.group-dir {
+.group-dir-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.git-branch-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.group-path {
   color: #858585;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+  flex: 1;
+  min-width: 0;
 }
 
 .group-stats {

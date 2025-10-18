@@ -38,8 +38,10 @@ const createWindow = (): void => {
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  // Open the DevTools in development mode only
+  if (process.env.NODE_ENV === 'development') {
+    mainWindow.webContents.openDevTools();
+  }
 };
 
 // Setup IPC handlers for terminal - must be before window creation
@@ -106,9 +108,102 @@ const setupTerminalHandlers = () => {
       // Prepare environment with PROMPT_COMMAND or precmd for bash/zsh
       const env = { ...(process.env as { [key: string]: string }) };
 
-      // For now, spawn shell without custom init script
-      // TODO: Add mason shell function injection
-      const shellArgs: string[] = [];
+      // For bash/zsh, we'll use shell arguments to source the mason function
+      let shellArgs: string[] = [];
+      if (process.platform !== 'win32') {
+        // For bash/zsh, use --init-file or --rcfile to inject our function
+        // We'll write the function definition and then source the normal rc file
+        const initScript = `
+mason() {
+  if [ "$1" = "new-group" ]; then
+    # Convert relative path to absolute path
+    local abs_path
+    if [[ "$2" = /* ]]; then
+      # Already absolute
+      abs_path="$2"
+    else
+      # Make it absolute relative to PWD
+      abs_path="$(cd "$2" 2>/dev/null && pwd)" || abs_path="$PWD/$2"
+    fi
+    printf '\\033]1337;MasonCommand=new-group;Path=%s\\007' "$abs_path"
+  elif [ "$1" = "set" ]; then
+    # Set current group's working directory to PWD
+    printf '\\033]1337;MasonCommand=set;Path=%s\\007' "$PWD"
+  fi
+}
+# Source user's rc file if it exists
+if [ -f ~/.bashrc ]; then source ~/.bashrc; fi
+if [ -f ~/.zshrc ]; then source ~/.zshrc; fi
+`;
+        // Write init script to temp file
+        const tmpDir = os.tmpdir();
+        const initFile = path.join(tmpDir, `.mason_init_${terminalId}`);
+        fs.writeFileSync(initFile, initScript);
+
+        // Use --rcfile for bash, or ENV for other shells
+        if (shell.includes('bash')) {
+          shellArgs = ['--rcfile', initFile, '-i'];
+        } else if (shell.includes('zsh')) {
+          // For zsh, we need to preserve the user's actual ZDOTDIR and home
+          const userHome = os.homedir();
+          const originalZdotdir = env.ZDOTDIR || userHome;
+
+          // Create a custom .zshenv that sources the user's real one first (for PATH)
+          // then create .zshrc with mason function
+          // zsh sources files in this order: .zshenv -> .zprofile -> .zshrc -> .zlogin
+
+          const zshenvScript = `
+# Source the user's actual .zshenv from their home directory first
+# This is critical for PATH setup
+if [ -f "$HOME/.zshenv" ]; then
+  source "$HOME/.zshenv"
+fi
+`;
+
+          const zshrcScript = `
+mason() {
+  if [ "$1" = "new-group" ]; then
+    # Convert relative path to absolute path
+    local abs_path
+    if [[ "$2" = /* ]]; then
+      # Already absolute
+      abs_path="$2"
+    else
+      # Make it absolute relative to PWD
+      abs_path="$(cd "$2" 2>/dev/null && pwd)" || abs_path="$PWD/$2"
+    fi
+    printf '\\033]1337;MasonCommand=new-group;Path=%s\\007' "$abs_path"
+  elif [ "$1" = "set" ]; then
+    # Set current group's working directory to PWD
+    printf '\\033]1337;MasonCommand=set;Path=%s\\007' "$PWD"
+  fi
+}
+
+# Source the user's actual .zprofile if it exists (more PATH setup)
+if [ -f "$HOME/.zprofile" ]; then
+  source "$HOME/.zprofile"
+fi
+
+# Source the user's actual .zshrc from their home directory
+if [ -f "$HOME/.zshrc" ]; then
+  source "$HOME/.zshrc"
+fi
+`;
+
+          env.ZDOTDIR = tmpDir;
+          const zshenv = path.join(tmpDir, '.zshenv');
+          const zshrc = path.join(tmpDir, '.zshrc');
+          fs.writeFileSync(zshenv, zshenvScript);
+          fs.writeFileSync(zshrc, zshrcScript);
+
+          // Start zsh as a login shell (-l) and interactive (-i)
+          // This ensures .zprofile and other login files are sourced
+          shellArgs = ['-l', '-i'];
+        } else {
+          // For other shells, just use default
+          shellArgs = [];
+        }
+      }
 
       const ptyProcess = pty.spawn(shell, shellArgs, {
         name: 'xterm-color',
@@ -151,6 +246,7 @@ const setupTerminalHandlers = () => {
           const tmpDir = os.tmpdir();
           const initFile = path.join(tmpDir, `.mason_init_${terminalId}`);
           const zshrc = path.join(tmpDir, '.zshrc');
+          const zshenv = path.join(tmpDir, '.zshenv');
           try {
             fs.unlinkSync(initFile);
           } catch (e) {
@@ -158,6 +254,11 @@ const setupTerminalHandlers = () => {
           }
           try {
             fs.unlinkSync(zshrc);
+          } catch (e) {
+            // Ignore if file doesn't exist
+          }
+          try {
+            fs.unlinkSync(zshenv);
           } catch (e) {
             // Ignore if file doesn't exist
           }
@@ -225,6 +326,38 @@ const setupTerminalHandlers = () => {
       return [];
     }
   };
+
+  // Get git branch for a directory
+  ipcMain.handle('git:getBranch', async (_, workingDir: string) => {
+    try {
+      // Expand ~ to home directory
+      let actualWorkingDir = workingDir;
+      if (workingDir === '~' || workingDir.startsWith('~/')) {
+        const home = os.homedir();
+        if (workingDir === '~') {
+          actualWorkingDir = home;
+        } else {
+          actualWorkingDir = home + workingDir.substring(1);
+        }
+      }
+
+      // Check if directory exists
+      if (!fs.existsSync(actualWorkingDir)) {
+        return null;
+      }
+
+      // Execute git command to get current branch
+      const { stdout } = await execAsync('git branch --show-current', {
+        cwd: actualWorkingDir,
+      });
+
+      const branch = stdout.trim();
+      return branch || null;
+    } catch (error) {
+      // Not a git repository or git command failed
+      return null;
+    }
+  });
 
   // Get process information for a terminal
   ipcMain.handle('terminal:getProcessInfo', async (_, terminalId: string) => {

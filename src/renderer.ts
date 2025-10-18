@@ -76,6 +76,13 @@ window.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         terminalManager.handleCloseTabShortcut();
       }
+
+      // Cmd/Ctrl + 1-9: Switch to tab by index
+      if (cmdOrCtrl && e.key >= '1' && e.key <= '9') {
+        e.preventDefault();
+        const tabIndex = parseInt(e.key, 10);
+        terminalManager.handleSwitchToTabByIndex(tabIndex);
+      }
     });
 
     console.log('Terminal Manager initialized with groups');

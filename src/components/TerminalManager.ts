@@ -28,6 +28,7 @@ export class TerminalManager {
       onGroupSelect: (groupId) => this.switchGroup(groupId),
       onNewGroup: () => this.createNewGroup(),
       onGroupRename: (groupId, newTitle) => this.renameGroup(groupId, newTitle),
+      onGroupUpdate: (groupId, updates) => this.updateGroup(groupId, updates),
     });
 
     this.tabBar = new TabBar(tabBarContainer, {
@@ -266,6 +267,16 @@ export class TerminalManager {
     this.render();
   }
 
+  private updateGroup(groupId: string, updates: Partial<Group>): void {
+    this.groups = this.groups.map((group) => {
+      if (group.id === groupId) {
+        return { ...group, ...updates };
+      }
+      return group;
+    });
+    this.render();
+  }
+
   private closeGroup(groupId: string): void {
     // If this is the last group, close the app
     if (this.groups.length === 1) {
@@ -362,6 +373,19 @@ export class TerminalManager {
     } else if (this.activeGroupId) {
       // No active tab means we're in empty workspace, close the group
       this.closeGroup(this.activeGroupId);
+    }
+  }
+
+  // Public method for keyboard shortcut: Cmd+1 through Cmd+9 (switch to tab by index)
+  public handleSwitchToTabByIndex(index: number): void {
+    if (!this.activeGroupId) return;
+
+    // Get tabs for active group
+    const groupTabs = this.tabs.filter((tab) => tab.groupId === this.activeGroupId);
+
+    // Check if index is within bounds (1-based index from user, 0-based for array)
+    if (index > 0 && index <= groupTabs.length) {
+      this.switchTab(groupTabs[index - 1].id);
     }
   }
 }

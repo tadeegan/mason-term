@@ -7,10 +7,12 @@ export class GroupSidebar {
   private onGroupSelect: (groupId: string) => void;
   private onNewGroup: () => void;
   private onGroupRename: (groupId: string, newTitle: string) => void;
+  private onGroupUpdate: (groupId: string, updates: Partial<Group>) => void;
   private processMonitorCard: ProcessMonitorCard;
   private allTabs: Tab[] = [];
   private updateInterval: NodeJS.Timeout | null = null;
   private resizeHandle: HTMLElement;
+  private currentGroups: Group[] = [];
 
   constructor(
     container: HTMLElement,
@@ -19,17 +21,20 @@ export class GroupSidebar {
       onGroupSelect: (groupId: string) => void;
       onNewGroup: () => void;
       onGroupRename: (groupId: string, newTitle: string) => void;
+      onGroupUpdate: (groupId: string, updates: Partial<Group>) => void;
     }
   ) {
     this.container = container;
     this.onGroupSelect = callbacks.onGroupSelect;
     this.onNewGroup = callbacks.onNewGroup;
     this.onGroupRename = callbacks.onGroupRename;
+    this.onGroupUpdate = callbacks.onGroupUpdate;
     this.processMonitorCard = new ProcessMonitorCard(appContainer);
 
     // Update group stats every 3 seconds
     this.updateInterval = setInterval(() => {
       this.updateGroupStats();
+      this.updateGitBranches();
     }, 3000);
 
     // Add resize handle
@@ -113,6 +118,7 @@ export class GroupSidebar {
 
   public render(groups: Group[], allTabs: Tab[]): void {
     this.allTabs = allTabs;
+    this.currentGroups = groups;
 
     // Remove all children except the resize handle
     while (this.container.firstChild && this.container.firstChild !== this.resizeHandle) {
@@ -161,8 +167,9 @@ export class GroupSidebar {
     this.container.insertBefore(groupsList, this.resizeHandle);
     this.container.insertBefore(newGroupContainer, this.resizeHandle);
 
-    // Update stats immediately after render
+    // Update stats and git branches immediately after render
     this.updateGroupStats();
+    this.updateGitBranches();
   }
 
   private createGroupElement(group: Group): HTMLElement {
@@ -199,9 +206,23 @@ export class GroupSidebar {
     titleRow.appendChild(renameIcon);
 
     const dirElement = document.createElement('div');
-    dirElement.className = 'group-dir';
-    dirElement.textContent = this.shortenPath(group.workingDir);
-    dirElement.title = group.workingDir;
+    dirElement.className = 'group-dir-container';
+
+    // Show git branch badge if available
+    if (group.gitBranch) {
+      const branchBadge = document.createElement('span');
+      branchBadge.className = 'git-branch-badge';
+      branchBadge.innerHTML = `<svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor" style="margin-right: 4px; vertical-align: baseline;"><path d="M11.5 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM9.182 3.5a2.5 2.5 0 1 1 3.637 0c.294.165.5.483.5.848v.652A2.5 2.5 0 0 1 10.819 7.5H9.5v4.95a2.5 2.5 0 1 1-1 0V7.5H7.181A2.5 2.5 0 0 1 4.681 5v-.652c0-.365.206-.683.5-.848a2.5 2.5 0 1 1 0-3.296A1.017 1.017 0 0 1 5.681 0h4.638c.199 0 .38.079.5.204zM4.5 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM9 13.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"/></svg>${group.gitBranch}`;
+      branchBadge.title = `Git branch: ${group.gitBranch}`;
+      dirElement.appendChild(branchBadge);
+    }
+
+    // Show working directory path
+    const pathElement = document.createElement('span');
+    pathElement.className = 'group-path';
+    pathElement.textContent = this.shortenPath(group.workingDir);
+    pathElement.title = group.workingDir;
+    dirElement.appendChild(pathElement);
 
     // Stats element (will be populated by updateGroupStats)
     const statsElement = document.createElement('div');
@@ -213,6 +234,22 @@ export class GroupSidebar {
     groupElement.appendChild(statsElement);
 
     return groupElement;
+  }
+
+  private async updateGitBranches(): Promise<void> {
+    // Update git branches for all groups
+    for (const group of this.currentGroups) {
+      try {
+        const branch = await window.terminalAPI.getGitBranch(group.workingDir);
+
+        // Only update if branch changed
+        if (branch !== group.gitBranch) {
+          this.onGroupUpdate(group.id, { gitBranch: branch });
+        }
+      } catch (error) {
+        // Ignore errors (likely not a git repo)
+      }
+    }
   }
 
   private async updateGroupStats(): Promise<void> {
