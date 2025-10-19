@@ -6,13 +6,22 @@ export class Terminal {
   private xterm: XTerm;
   private fitAddon: FitAddon;
   private container: HTMLElement;
+  private xtermWrapper: HTMLElement;
   private terminalId: string;
   private workingDir: string;
+  private resizeObserver: ResizeObserver;
 
   constructor(container: HTMLElement, terminalId: string, workingDir: string) {
     this.container = container;
     this.terminalId = terminalId;
     this.workingDir = workingDir;
+
+    // Create inner wrapper div with no padding for xterm
+    this.xtermWrapper = document.createElement('div');
+    this.xtermWrapper.className = 'xterm-wrapper';
+    this.xtermWrapper.style.width = '100%';
+    this.xtermWrapper.style.height = '100%';
+    this.container.appendChild(this.xtermWrapper);
 
     // Create xterm instance
     this.xterm = new XTerm({
@@ -46,8 +55,8 @@ export class Terminal {
     this.fitAddon = new FitAddon();
     this.xterm.loadAddon(this.fitAddon);
 
-    // Open terminal in container
-    this.xterm.open(container);
+    // Open terminal in the wrapper (not the padded container)
+    this.xterm.open(this.xtermWrapper);
     this.fitAddon.fit();
 
     // Setup event listeners
@@ -56,8 +65,11 @@ export class Terminal {
     // Create the PTY process
     this.initializeTerminal();
 
-    // Handle window resize
-    window.addEventListener('resize', () => this.fit());
+    // Use ResizeObserver to watch for wrapper size changes
+    this.resizeObserver = new ResizeObserver(() => {
+      this.fit();
+    });
+    this.resizeObserver.observe(this.xtermWrapper);
   }
 
   private async initializeTerminal(): Promise<void> {
@@ -109,6 +121,7 @@ export class Terminal {
   }
 
   public dispose(): void {
+    this.resizeObserver.disconnect();
     this.xterm.dispose();
   }
 }
