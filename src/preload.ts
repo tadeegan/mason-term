@@ -28,6 +28,10 @@ const terminalAPI: TerminalAPI = {
     ipcRenderer.invoke('terminal:getProcessInfo', terminalId),
   getGitBranch: (workingDir: string) =>
     ipcRenderer.invoke('git:getBranch', workingDir),
+  getPr: (workingDir: string) =>
+    ipcRenderer.invoke('git:getPr', workingDir),
+  openExternal: (url: string) =>
+    ipcRenderer.invoke('shell:openExternal', url),
   closeWindow: () => ipcRenderer.send('window:close'),
 };
 

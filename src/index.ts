@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import * as pty from 'node-pty';
 import * as os from 'os';
 import * as fs from 'fs';
@@ -47,20 +47,20 @@ const createWindow = (): void => {
 // Setup IPC handlers for terminal - must be before window creation
 const setupTerminalHandlers = () => {
   // Determine shell based on OS
-  let shell = process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || '/bin/zsh';
+  let shellPath = process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || '/bin/zsh';
 
   // Validate shell exists
   if (process.platform !== 'win32') {
-    const commonShells = [shell, '/bin/zsh', '/bin/bash', '/bin/sh'];
-    shell = '';
+    const commonShells = [shellPath, '/bin/zsh', '/bin/bash', '/bin/sh'];
+    shellPath = '';
     for (const testShell of commonShells) {
       if (fs.existsSync(testShell)) {
-        shell = testShell;
+        shellPath = testShell;
         break;
       }
     }
-    if (!shell) {
-      shell = '/bin/sh'; // Ultimate fallback
+    if (!shellPath) {
+      shellPath = '/bin/sh'; // Ultimate fallback
     }
   }
 
@@ -141,9 +141,9 @@ if [ -f ~/.zshrc ]; then source ~/.zshrc; fi
         fs.writeFileSync(initFile, initScript);
 
         // Use --rcfile for bash, or ENV for other shells
-        if (shell.includes('bash')) {
+        if (shellPath.includes('bash')) {
           shellArgs = ['--rcfile', initFile, '-i'];
-        } else if (shell.includes('zsh')) {
+        } else if (shellPath.includes('zsh')) {
           // For zsh, we need to preserve the user's actual ZDOTDIR and home
           const userHome = os.homedir();
           const originalZdotdir = env.ZDOTDIR || userHome;
@@ -205,7 +205,7 @@ fi
         }
       }
 
-      const ptyProcess = pty.spawn(shell, shellArgs, {
+      const ptyProcess = pty.spawn(shellPath, shellArgs, {
         name: 'xterm-color',
         cols: 80,
         rows: 24,
@@ -359,6 +359,45 @@ fi
     }
   });
 
+  // Get pull request for current branch
+  ipcMain.handle('git:getPr', async (_, workingDir: string) => {
+    try {
+      // Expand ~ to home directory
+      let actualWorkingDir = workingDir;
+      if (workingDir === '~' || workingDir.startsWith('~/')) {
+        const home = os.homedir();
+        if (workingDir === '~') {
+          actualWorkingDir = home;
+        } else {
+          actualWorkingDir = home + workingDir.substring(1);
+        }
+      }
+
+      // Check if directory exists
+      if (!fs.existsSync(actualWorkingDir)) {
+        return null;
+      }
+
+      // Execute gh command to get PR for current branch
+      const { stdout } = await execAsync('gh pr view --json number,title,url', {
+        cwd: actualWorkingDir,
+      });
+
+      const prData = JSON.parse(stdout.trim());
+      if (prData && prData.number) {
+        return {
+          number: prData.number,
+          title: prData.title,
+          url: prData.url,
+        };
+      }
+      return null;
+    } catch (error) {
+      // No PR for this branch, gh not installed, or not authenticated
+      return null;
+    }
+  });
+
   // Get process information for a terminal
   ipcMain.handle('terminal:getProcessInfo', async (_, terminalId: string) => {
     const ptyProcess = ptyProcesses.get(terminalId);
@@ -434,6 +473,17 @@ fi
         cpuPercent: 0,
         memoryMB: 0,
       };
+    }
+  });
+
+  // Open URL in default browser
+  ipcMain.handle('shell:openExternal', async (_, url: string) => {
+    try {
+      await shell.openExternal(url);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to open URL:', error);
+      return { success: false };
     }
   });
 

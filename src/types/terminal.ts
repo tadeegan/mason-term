@@ -1,4 +1,5 @@
 import { ProcessInfo } from './process';
+import { PullRequest } from './group';
 
 export interface TerminalAPI {
   create: (terminalId: string, workingDir: string) => Promise<{ success: boolean }>;
@@ -9,6 +10,8 @@ export interface TerminalAPI {
   onMasonCommand: (callback: (command: string, path: string) => void) => void;
   getProcessInfo: (terminalId: string) => Promise<ProcessInfo | null>;
   getGitBranch: (workingDir: string) => Promise<string | null>;
+  getPr: (workingDir: string) => Promise<PullRequest | null>;
+  openExternal: (url: string) => Promise<{ success: boolean }>;
   closeWindow: () => void;
 }
 

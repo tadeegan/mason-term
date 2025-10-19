@@ -1,9 +1,16 @@
+export interface PullRequest {
+  number: number;
+  title: string;
+  url: string;
+}
+
 export interface Group {
   id: string;
   title: string;
   workingDir: string;
   isActive: boolean;
   gitBranch?: string | null;
+  pr?: PullRequest | null;
 }
 
 export interface GroupState {

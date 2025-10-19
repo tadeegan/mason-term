@@ -35,6 +35,7 @@ export class GroupSidebar {
     this.updateInterval = setInterval(() => {
       this.updateGroupStats();
       this.updateGitBranches();
+      this.updatePrs();
     }, 3000);
 
     // Add resize handle
@@ -133,7 +134,17 @@ export class GroupSidebar {
     // Create header
     const header = document.createElement('div');
     header.className = 'groups-header';
-    header.textContent = 'Groups';
+
+    // Add thread icon (Lucide MessageSquare)
+    const iconSpan = document.createElement('span');
+    iconSpan.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+    iconSpan.style.marginRight = '6px';
+    iconSpan.style.verticalAlign = 'middle';
+    iconSpan.style.display = 'inline-flex';
+
+    const textNode = document.createTextNode('Threads');
+    header.appendChild(iconSpan);
+    header.appendChild(textNode);
 
     // Create groups list container
     const groupsList = document.createElement('div');
@@ -212,9 +223,39 @@ export class GroupSidebar {
     if (group.gitBranch) {
       const branchBadge = document.createElement('span');
       branchBadge.className = 'git-branch-badge';
-      branchBadge.innerHTML = `<svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor" style="margin-right: 4px; vertical-align: baseline;"><path d="M11.5 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM9.182 3.5a2.5 2.5 0 1 1 3.637 0c.294.165.5.483.5.848v.652A2.5 2.5 0 0 1 10.819 7.5H9.5v4.95a2.5 2.5 0 1 1-1 0V7.5H7.181A2.5 2.5 0 0 1 4.681 5v-.652c0-.365.206-.683.5-.848a2.5 2.5 0 1 1 0-3.296A1.017 1.017 0 0 1 5.681 0h4.638c.199 0 .38.079.5.204zM4.5 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM9 13.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0z"/></svg>${group.gitBranch}`;
       branchBadge.title = `Git branch: ${group.gitBranch}`;
+
+      const branchIconSpan = document.createElement('span');
+      branchIconSpan.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>';
+      branchIconSpan.style.marginRight = '4px';
+      branchIconSpan.style.verticalAlign = 'baseline';
+      branchIconSpan.style.display = 'inline-flex';
+
+      branchBadge.appendChild(branchIconSpan);
+      branchBadge.appendChild(document.createTextNode(group.gitBranch));
       dirElement.appendChild(branchBadge);
+    }
+
+    // Show PR badge if available
+    if (group.pr) {
+      const prBadge = document.createElement('span');
+      prBadge.className = 'pr-badge';
+      prBadge.title = `Pull Request: ${group.pr.title}`;
+      prBadge.style.cursor = 'pointer';
+      prBadge.onclick = (e) => {
+        e.stopPropagation();
+        window.terminalAPI.openExternal(group.pr!.url);
+      };
+
+      const prIconSpan = document.createElement('span');
+      prIconSpan.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" x2="6" y1="9" y2="21"/></svg>';
+      prIconSpan.style.marginRight = '4px';
+      prIconSpan.style.verticalAlign = 'baseline';
+      prIconSpan.style.display = 'inline-flex';
+
+      prBadge.appendChild(prIconSpan);
+      prBadge.appendChild(document.createTextNode(`#${group.pr.number}`));
+      dirElement.appendChild(prBadge);
     }
 
     // Show working directory path
@@ -248,6 +289,27 @@ export class GroupSidebar {
         }
       } catch (error) {
         // Ignore errors (likely not a git repo)
+      }
+    }
+  }
+
+  private async updatePrs(): Promise<void> {
+    // Update PRs for all groups
+    for (const group of this.currentGroups) {
+      try {
+        const pr = await window.terminalAPI.getPr(group.workingDir);
+
+        // Only update if PR changed
+        const prChanged =
+          (!pr && group.pr) ||
+          (pr && !group.pr) ||
+          (pr && group.pr && pr.number !== group.pr.number);
+
+        if (prChanged) {
+          this.onGroupUpdate(group.id, { pr });
+        }
+      } catch (error) {
+        // Ignore errors (no PR, gh not installed, or not authenticated)
       }
     }
   }
