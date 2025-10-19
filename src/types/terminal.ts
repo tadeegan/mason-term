@@ -12,6 +12,7 @@ export interface TerminalAPI {
   getGitBranch: (workingDir: string) => Promise<string | null>;
   getPr: (workingDir: string) => Promise<PullRequest | null>;
   openExternal: (url: string) => Promise<{ success: boolean }>;
+  openInEditor: (workingDir: string) => Promise<{ success: boolean }>;
   closeWindow: () => void;
 }
 

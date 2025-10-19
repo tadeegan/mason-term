@@ -32,6 +32,8 @@ const terminalAPI: TerminalAPI = {
     ipcRenderer.invoke('git:getPr', workingDir),
   openExternal: (url: string) =>
     ipcRenderer.invoke('shell:openExternal', url),
+  openInEditor: (workingDir: string) =>
+    ipcRenderer.invoke('shell:openInEditor', workingDir),
   closeWindow: () => ipcRenderer.send('window:close'),
 };
 

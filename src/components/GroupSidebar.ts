@@ -50,6 +50,25 @@ export class GroupSidebar {
     this.container.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
 
+      // Check if the click was on the editor icon
+      if (target.classList.contains('group-editor-icon')) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Find the group element and get the group ID
+        const groupElement = target.closest('.group-item') as HTMLElement;
+        if (groupElement) {
+          const groupId = groupElement.getAttribute('data-group-id');
+          if (groupId) {
+            // Find the group and open in editor
+            const group = this.currentGroups.find((g) => g.id === groupId);
+            if (group) {
+              window.terminalAPI.openInEditor(group.workingDir);
+            }
+          }
+        }
+      }
+
       // Check if the click was on the rename icon
       if (target.classList.contains('group-rename-icon')) {
         e.preventDefault();
@@ -207,14 +226,27 @@ export class GroupSidebar {
     titleElement.className = 'group-title';
     titleElement.textContent = group.title;
 
+    // Create container for icons
+    const iconsContainer = document.createElement('div');
+    iconsContainer.className = 'group-icons-container';
+
+    // Add open in editor icon
+    const editorIcon = document.createElement('span');
+    editorIcon.className = 'group-editor-icon';
+    editorIcon.textContent = '📝';
+    editorIcon.title = 'Open in editor';
+
     // Add rename icon
     const renameIcon = document.createElement('span');
     renameIcon.className = 'group-rename-icon';
     renameIcon.textContent = '✏️';
     renameIcon.title = 'Rename group';
 
+    iconsContainer.appendChild(editorIcon);
+    iconsContainer.appendChild(renameIcon);
+
     titleRow.appendChild(titleElement);
-    titleRow.appendChild(renameIcon);
+    titleRow.appendChild(iconsContainer);
 
     const dirElement = document.createElement('div');
     dirElement.className = 'group-dir-container';

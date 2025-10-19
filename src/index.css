@@ -230,6 +230,12 @@ html, body {
   flex: 1;
 }
 
+.group-icons-container {
+  display: flex;
+  gap: 4px;
+}
+
+.group-editor-icon,
 .group-rename-icon {
   font-size: 12px;
   opacity: 0;
@@ -237,13 +243,14 @@ html, body {
   padding: 2px 4px;
   border-radius: 3px;
   transition: opacity 0.2s, background-color 0.1s;
-  margin-left: 8px;
 }
 
+.group-item:hover .group-editor-icon,
 .group-item:hover .group-rename-icon {
   opacity: 0.6;
 }
 
+.group-editor-icon:hover,
 .group-rename-icon:hover {
   opacity: 1 !important;
   background-color: rgba(255, 255, 255, 0.1);
