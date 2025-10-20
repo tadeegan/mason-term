@@ -3,6 +3,8 @@ import { TabBar } from './TabBar';
 import { GroupSidebar } from './GroupSidebar';
 import { Tab } from '../types/tab';
 import { Group } from '../types/group';
+import { WorkspaceManager } from '../services/WorkspaceManager';
+import { WorkspaceData } from '../types/workspace';
 
 export class TerminalManager {
   private tabs: Tab[] = [];
@@ -20,7 +22,8 @@ export class TerminalManager {
     groupSidebarContainer: HTMLElement,
     tabBarContainer: HTMLElement,
     terminalContainer: HTMLElement,
-    appContainer: HTMLElement
+    appContainer: HTMLElement,
+    skipInitialGroup: boolean = false
   ) {
     this.terminalContainer = terminalContainer;
 
@@ -37,9 +40,11 @@ export class TerminalManager {
       onNewTab: () => this.createNewTab(),
     });
 
-    // Create initial group with home directory
-    const homeDir = this.getHomeDirectory();
-    this.createGroup('Default', homeDir);
+    // Create initial group with home directory (unless we're loading a workspace)
+    if (!skipInitialGroup) {
+      const homeDir = this.getHomeDirectory();
+      this.createGroup('Default', homeDir);
+    }
   }
 
   private getHomeDirectory(): string {
@@ -71,6 +76,9 @@ export class TerminalManager {
     if (createTab) {
       this.createNewTab();
     }
+
+    // Save workspace state
+    this.saveState();
   }
 
   private createNewGroup(): void {
@@ -265,6 +273,7 @@ export class TerminalManager {
       return group;
     });
     this.render();
+    this.saveState();
   }
 
   private updateGroup(groupId: string, updates: Partial<Group>): void {
@@ -275,6 +284,7 @@ export class TerminalManager {
       return group;
     });
     this.render();
+    this.saveState();
   }
 
   private closeGroup(groupId: string): void {
@@ -314,6 +324,9 @@ export class TerminalManager {
     } else {
       this.render();
     }
+
+    // Save workspace state
+    this.saveState();
   }
 
   private render(): void {
@@ -386,6 +399,52 @@ export class TerminalManager {
     // Check if index is within bounds (1-based index from user, 0-based for array)
     if (index > 0 && index <= groupTabs.length) {
       this.switchTab(groupTabs[index - 1].id);
+    }
+  }
+
+  // Workspace persistence methods
+
+  /**
+   * Save current workspace state to file
+   */
+  private async saveState(): Promise<void> {
+    try {
+      await WorkspaceManager.saveWorkspace(this.groups);
+    } catch (error) {
+      console.error('Failed to save workspace state:', error);
+    }
+  }
+
+  /**
+   * Load workspace from data and recreate groups
+   */
+  public loadWorkspace(workspaceData: WorkspaceData): void {
+    // Clear existing groups (except we'll replace them with loaded ones)
+    this.groups = [];
+
+    // Recreate groups from workspace data
+    workspaceData.groups.forEach((persistedGroup, index) => {
+      // Restore group counter to avoid ID conflicts
+      this.groupCounter = Math.max(
+        this.groupCounter,
+        parseInt(persistedGroup.id.replace('group-', '')) || 0
+      );
+
+      const group: Group = {
+        id: persistedGroup.id,
+        title: persistedGroup.title,
+        workingDir: persistedGroup.workingDir,
+        isActive: index === 0, // First group is active
+      };
+
+      this.groups.push(group);
+    });
+
+    // If we have groups, switch to the first one
+    if (this.groups.length > 0) {
+      this.switchGroup(this.groups[0].id);
+      // Create initial tab
+      this.createNewTab();
     }
   }
 }

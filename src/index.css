@@ -623,3 +623,160 @@ html, body {
 .process-monitor-card::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+/* Session Picker Styles */
+.session-picker-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+}
+
+.session-picker-content {
+  background: #252526;
+  border: 1px solid #3e3e42;
+  border-radius: 8px;
+  padding: 24px;
+  min-width: 500px;
+  max-width: 600px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.session-picker-content h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #d4d4d4;
+}
+
+.session-picker-description {
+  margin: 0 0 20px 0;
+  font-size: 13px;
+  color: #858585;
+}
+
+.sessions-list {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.session-item {
+  background: #2d2d30;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  outline: none;
+}
+
+.session-item:hover {
+  background: #37373d;
+  border-color: #555555;
+}
+
+.session-item.selected {
+  background: #37373d;
+  border-color: #007acc;
+}
+
+.session-item:focus {
+  border-color: #007acc;
+}
+
+.session-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.session-date {
+  font-size: 14px;
+  font-weight: 500;
+  color: #d4d4d4;
+}
+
+.session-count-badge {
+  background: rgba(0, 122, 204, 0.2);
+  color: #4fc3f7;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.session-groups-preview {
+  font-size: 12px;
+  color: #858585;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-picker-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.session-picker-button {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  transition: background-color 0.15s;
+}
+
+.session-picker-secondary {
+  background: #3c3c3c;
+  color: #d4d4d4;
+}
+
+.session-picker-secondary:hover {
+  background: #4e4e4e;
+}
+
+.session-picker-primary {
+  background: #007acc;
+  color: #ffffff;
+}
+
+.session-picker-primary:hover {
+  background: #005a9e;
+}
+
+/* Scrollbar styling for sessions list */
+.sessions-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sessions-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.sessions-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.sessions-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}

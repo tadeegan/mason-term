@@ -6,6 +6,7 @@ import * as path from 'path';
 import pidusage from 'pidusage';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { WorkspaceData, WorkspaceMetadata } from './types/workspace';
 
 const execAsync = promisify(exec);
 
@@ -536,6 +537,112 @@ fi
     } catch (error) {
       console.error('Failed to open in editor:', error);
       return { success: false };
+    }
+  });
+
+  // Workspace persistence handlers
+
+  // Get the workspace directory path and ensure it exists
+  const getWorkspaceDir = (): string => {
+    const homeDir = os.homedir();
+    const workspaceDir = path.join(homeDir, '.mason');
+
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(workspaceDir)) {
+      fs.mkdirSync(workspaceDir, { recursive: true });
+    }
+
+    return workspaceDir;
+  };
+
+  // Generate filename with timestamp
+  const generateFilename = (): string => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+
+    return `workspace-${year}-${month}-${day}-${hours}-${minutes}-${seconds}.json`;
+  };
+
+  // Save workspace to file
+  ipcMain.handle('workspace:save', async (_, data: WorkspaceData): Promise<string> => {
+    try {
+      const workspaceDir = getWorkspaceDir();
+      const filename = generateFilename();
+      const filepath = path.join(workspaceDir, filename);
+
+      // Write the workspace data to file
+      fs.writeFileSync(filepath, JSON.stringify(data, null, 2), 'utf-8');
+
+      console.log(`Workspace saved: ${filepath}`);
+      return filename;
+    } catch (error) {
+      console.error('Failed to save workspace:', error);
+      throw error;
+    }
+  });
+
+  // Load workspace from file
+  ipcMain.handle('workspace:load', async (_, filename: string): Promise<WorkspaceData> => {
+    try {
+      const workspaceDir = getWorkspaceDir();
+      const filepath = path.join(workspaceDir, filename);
+
+      if (!fs.existsSync(filepath)) {
+        throw new Error(`Workspace file not found: ${filename}`);
+      }
+
+      const content = fs.readFileSync(filepath, 'utf-8');
+      const data: WorkspaceData = JSON.parse(content);
+
+      console.log(`Workspace loaded: ${filepath}`);
+      return data;
+    } catch (error) {
+      console.error('Failed to load workspace:', error);
+      throw error;
+    }
+  });
+
+  // List all available workspaces
+  ipcMain.handle('workspace:list', async (): Promise<WorkspaceMetadata[]> => {
+    try {
+      const workspaceDir = getWorkspaceDir();
+
+      // Read all files in the workspace directory
+      const files = fs.readdirSync(workspaceDir);
+
+      // Filter for workspace JSON files and extract metadata
+      const workspaces: WorkspaceMetadata[] = files
+        .filter(file => file.startsWith('workspace-') && file.endsWith('.json'))
+        .map(filename => {
+          const filepath = path.join(workspaceDir, filename);
+          try {
+            const content = fs.readFileSync(filepath, 'utf-8');
+            const data: WorkspaceData = JSON.parse(content);
+
+            return {
+              filename,
+              filepath,
+              timestamp: data.timestamp,
+              groupCount: data.groups.length,
+              groupNames: data.groups.map(g => g.title),
+            };
+          } catch (error) {
+            console.error(`Failed to parse workspace file ${filename}:`, error);
+            return null;
+          }
+        })
+        .filter((w): w is WorkspaceMetadata => w !== null);
+
+      console.log(`Found ${workspaces.length} workspace(s)`);
+      return workspaces;
+    } catch (error) {
+      console.error('Failed to list workspaces:', error);
+      return [];
     }
   });
 

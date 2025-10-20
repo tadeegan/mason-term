@@ -1,10 +1,12 @@
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
 
 export class Terminal {
   private xterm: XTerm;
   private fitAddon: FitAddon;
+  private webLinksAddon: WebLinksAddon;
   private container: HTMLElement;
   private xtermWrapper: HTMLElement;
   private terminalId: string;
@@ -54,6 +56,13 @@ export class Terminal {
     // Setup fit addon
     this.fitAddon = new FitAddon();
     this.xterm.loadAddon(this.fitAddon);
+
+    // Setup web links addon to make URLs clickable
+    this.webLinksAddon = new WebLinksAddon((event: MouseEvent, uri: string) => {
+      // Open links in the default browser
+      window.terminalAPI.openExternal(uri);
+    });
+    this.xterm.loadAddon(this.webLinksAddon);
 
     // Open terminal in the wrapper (not the padded container)
     this.xterm.open(this.xtermWrapper);

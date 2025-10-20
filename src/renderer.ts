@@ -28,21 +28,63 @@
 
 import './index.css';
 import { TerminalManager } from './components/TerminalManager';
+import { WorkspaceManager } from './services/WorkspaceManager';
+import { SessionPicker } from './components/SessionPicker';
 
 // Wait for DOM to be ready
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   const appContainer = document.getElementById('app');
   const groupSidebarContainer = document.getElementById('group-sidebar');
   const tabBarContainer = document.getElementById('tab-bar');
   const terminalsContainer = document.getElementById('terminals-container');
 
   if (appContainer && groupSidebarContainer && tabBarContainer && terminalsContainer) {
-    const terminalManager = new TerminalManager(
-      groupSidebarContainer,
-      tabBarContainer,
-      terminalsContainer,
-      appContainer
-    );
+    let terminalManager: TerminalManager;
+
+    // Check for saved workspaces
+    const workspaces = await WorkspaceManager.listWorkspaces();
+
+    if (workspaces.length > 0) {
+      // Show session picker
+      const sessionPicker = new SessionPicker();
+      const selectedFilename = await sessionPicker.show(workspaces);
+
+      if (selectedFilename) {
+        // Load selected workspace
+        console.log(`Loading workspace: ${selectedFilename}`);
+        const workspaceData = await WorkspaceManager.loadWorkspace(selectedFilename);
+
+        // Create TerminalManager without initial group
+        terminalManager = new TerminalManager(
+          groupSidebarContainer,
+          tabBarContainer,
+          terminalsContainer,
+          appContainer,
+          true // Skip initial group
+        );
+
+        // Load workspace data
+        terminalManager.loadWorkspace(workspaceData);
+      } else {
+        // Start fresh
+        console.log('Starting fresh workspace');
+        terminalManager = new TerminalManager(
+          groupSidebarContainer,
+          tabBarContainer,
+          terminalsContainer,
+          appContainer
+        );
+      }
+    } else {
+      // No saved workspaces, start fresh
+      console.log('No saved workspaces, starting fresh');
+      terminalManager = new TerminalManager(
+        groupSidebarContainer,
+        tabBarContainer,
+        terminalsContainer,
+        appContainer
+      );
+    }
 
     // Setup mason command listener
     window.terminalAPI.onMasonCommand((command: string, path: string) => {

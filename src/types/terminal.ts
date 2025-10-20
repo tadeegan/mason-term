@@ -1,5 +1,6 @@
 import { ProcessInfo } from './process';
 import { PullRequest } from './group';
+import { WorkspaceData, WorkspaceMetadata } from './workspace';
 
 export interface TerminalAPI {
   create: (terminalId: string, workingDir: string) => Promise<{ success: boolean }>;
@@ -14,6 +15,9 @@ export interface TerminalAPI {
   openExternal: (url: string) => Promise<{ success: boolean }>;
   openInEditor: (workingDir: string) => Promise<{ success: boolean }>;
   closeWindow: () => void;
+  saveWorkspace: (data: WorkspaceData) => Promise<string>;
+  loadWorkspace: (filename: string) => Promise<WorkspaceData>;
+  listWorkspaces: () => Promise<WorkspaceMetadata[]>;
 }
 
 declare global {

@@ -35,6 +35,12 @@ const terminalAPI: TerminalAPI = {
   openInEditor: (workingDir: string) =>
     ipcRenderer.invoke('shell:openInEditor', workingDir),
   closeWindow: () => ipcRenderer.send('window:close'),
+  saveWorkspace: (data) =>
+    ipcRenderer.invoke('workspace:save', data),
+  loadWorkspace: (filename) =>
+    ipcRenderer.invoke('workspace:load', filename),
+  listWorkspaces: () =>
+    ipcRenderer.invoke('workspace:list'),
 };
 
 contextBridge.exposeInMainWorld('terminalAPI', terminalAPI);
