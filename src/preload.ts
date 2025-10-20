@@ -47,6 +47,9 @@ const terminalAPI: TerminalAPI = {
     ipcRenderer.invoke('settings:save', settings),
   resetSettings: () =>
     ipcRenderer.invoke('settings:reset'),
+  onMenuOpenSettings: (callback: () => void) => {
+    ipcRenderer.on('menu:open-settings', () => callback());
+  },
 };
 
 contextBridge.exposeInMainWorld('terminalAPI', terminalAPI);

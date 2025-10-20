@@ -94,6 +94,11 @@ window.addEventListener('DOMContentLoaded', async () => {
       await terminalManager.refreshSettings();
     });
 
+    // Listen for menu events to open settings
+    window.terminalAPI.onMenuOpenSettings(() => {
+      settingsPane.show();
+    });
+
     // Setup mason command listener
     window.terminalAPI.onMasonCommand((command: string, path: string) => {
       console.log(`Mason command received: ${command} ${path}`);
