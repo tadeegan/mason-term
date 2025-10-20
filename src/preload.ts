@@ -41,6 +41,12 @@ const terminalAPI: TerminalAPI = {
     ipcRenderer.invoke('workspace:load', filename),
   listWorkspaces: () =>
     ipcRenderer.invoke('workspace:list'),
+  loadSettings: () =>
+    ipcRenderer.invoke('settings:load'),
+  saveSettings: (settings) =>
+    ipcRenderer.invoke('settings:save', settings),
+  resetSettings: () =>
+    ipcRenderer.invoke('settings:reset'),
 };
 
 contextBridge.exposeInMainWorld('terminalAPI', terminalAPI);

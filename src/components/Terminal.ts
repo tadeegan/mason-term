@@ -2,6 +2,7 @@ import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
+import { AppSettings, DEFAULT_SETTINGS } from '../types/settings';
 
 export class Terminal {
   private xterm: XTerm;
@@ -12,8 +13,9 @@ export class Terminal {
   private terminalId: string;
   private workingDir: string;
   private resizeObserver: ResizeObserver;
+  private isVisible: boolean = true;
 
-  constructor(container: HTMLElement, terminalId: string, workingDir: string) {
+  constructor(container: HTMLElement, terminalId: string, workingDir: string, settings?: AppSettings) {
     this.container = container;
     this.terminalId = terminalId;
     this.workingDir = workingDir;
@@ -25,11 +27,16 @@ export class Terminal {
     this.xtermWrapper.style.height = '100%';
     this.container.appendChild(this.xtermWrapper);
 
+    // Use provided settings or fall back to defaults
+    const terminalSettings = settings?.terminal || DEFAULT_SETTINGS.terminal;
+
     // Create xterm instance
     this.xterm = new XTerm({
-      cursorBlink: true,
-      fontSize: 14,
-      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      cursorBlink: terminalSettings.cursorBlink,
+      fontSize: terminalSettings.fontSize,
+      fontFamily: terminalSettings.fontFamily,
+      cursorStyle: terminalSettings.cursorStyle,
+      scrollback: terminalSettings.scrollbackLines,
       theme: {
         background: '#1e1e1e',
         foreground: '#d4d4d4',
@@ -109,15 +116,23 @@ export class Terminal {
 
   public fit(): void {
     this.fitAddon.fit();
-    const { cols, rows } = this.xterm;
-    window.terminalAPI.resize(this.terminalId, cols, rows);
+    // Only send resize to PTY if terminal is visible
+    // This prevents dimension collapse when terminal is hidden
+    if (this.isVisible) {
+      const { cols, rows } = this.xterm;
+      window.terminalAPI.resize(this.terminalId, cols, rows);
+    }
   }
 
   public show(): void {
     this.container.style.display = 'block';
+    this.isVisible = true;
+    // Restore proper dimensions after showing
+    this.fit();
   }
 
   public hide(): void {
+    this.isVisible = false;
     this.container.style.display = 'none';
   }
 

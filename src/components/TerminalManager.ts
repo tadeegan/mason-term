@@ -5,6 +5,7 @@ import { Tab } from '../types/tab';
 import { Group } from '../types/group';
 import { WorkspaceManager } from '../services/WorkspaceManager';
 import { WorkspaceData } from '../types/workspace';
+import { AppSettings } from '../types/settings';
 
 export class TerminalManager {
   private tabs: Tab[] = [];
@@ -17,6 +18,7 @@ export class TerminalManager {
   private terminalContainer: HTMLElement;
   private tabCounter = 0;
   private groupCounter = 0;
+  private settings: AppSettings | null = null;
 
   constructor(
     groupSidebarContainer: HTMLElement,
@@ -40,11 +42,27 @@ export class TerminalManager {
       onNewTab: () => this.createNewTab(),
     });
 
+    // Load settings
+    this.loadSettings();
+
     // Create initial group with home directory (unless we're loading a workspace)
     if (!skipInitialGroup) {
       const homeDir = this.getHomeDirectory();
       this.createGroup('Default', homeDir);
     }
+  }
+
+  private async loadSettings(): Promise<void> {
+    try {
+      this.settings = await window.terminalAPI.loadSettings();
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+      // Continue with defaults if settings fail to load
+    }
+  }
+
+  public async refreshSettings(): Promise<void> {
+    await this.loadSettings();
   }
 
   private getHomeDirectory(): string {
@@ -110,8 +128,8 @@ export class TerminalManager {
     terminalDiv.style.display = 'none';
     this.terminalContainer.appendChild(terminalDiv);
 
-    // Create terminal with group's working directory
-    const terminal = new Terminal(terminalDiv, tabId, activeGroup.workingDir);
+    // Create terminal with group's working directory and settings
+    const terminal = new Terminal(terminalDiv, tabId, activeGroup.workingDir, this.settings || undefined);
     this.terminals.set(tabId, terminal);
 
     // Switch to new tab

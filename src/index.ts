@@ -7,6 +7,8 @@ import pidusage from 'pidusage';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { WorkspaceData, WorkspaceMetadata } from './types/workspace';
+import { SettingsManager } from './services/SettingsManager';
+import { AppSettings } from './types/settings';
 
 const execAsync = promisify(exec);
 
@@ -643,6 +645,39 @@ fi
     } catch (error) {
       console.error('Failed to list workspaces:', error);
       return [];
+    }
+  });
+
+  // Settings handlers
+  ipcMain.handle('settings:load', async (): Promise<AppSettings> => {
+    try {
+      const settings = await SettingsManager.load();
+      console.log('Settings loaded');
+      return settings;
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('settings:save', async (_, settings: AppSettings): Promise<void> => {
+    try {
+      await SettingsManager.save(settings);
+      console.log('Settings saved');
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('settings:reset', async (): Promise<AppSettings> => {
+    try {
+      const settings = await SettingsManager.reset();
+      console.log('Settings reset to defaults');
+      return settings;
+    } catch (error) {
+      console.error('Failed to reset settings:', error);
+      throw error;
     }
   });
 

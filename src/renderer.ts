@@ -30,6 +30,7 @@ import './index.css';
 import { TerminalManager } from './components/TerminalManager';
 import { WorkspaceManager } from './services/WorkspaceManager';
 import { SessionPicker } from './components/SessionPicker';
+import { SettingsPane } from './components/SettingsPane';
 
 // Wait for DOM to be ready
 window.addEventListener('DOMContentLoaded', async () => {
@@ -86,6 +87,13 @@ window.addEventListener('DOMContentLoaded', async () => {
       );
     }
 
+    // Setup settings pane
+    const settingsPane = new SettingsPane();
+    settingsPane.onSave(async () => {
+      // Refresh settings in terminal manager when settings are saved
+      await terminalManager.refreshSettings();
+    });
+
     // Setup mason command listener
     window.terminalAPI.onMasonCommand((command: string, path: string) => {
       console.log(`Mason command received: ${command} ${path}`);
@@ -124,6 +132,12 @@ window.addEventListener('DOMContentLoaded', async () => {
         e.preventDefault();
         const tabIndex = parseInt(e.key, 10);
         terminalManager.handleSwitchToTabByIndex(tabIndex);
+      }
+
+      // Cmd/Ctrl + ,: Open Settings
+      if (cmdOrCtrl && e.key === ',') {
+        e.preventDefault();
+        settingsPane.show();
       }
     });
 
