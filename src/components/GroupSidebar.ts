@@ -311,37 +311,69 @@ export class GroupSidebar {
 
   private async updateGitBranches(): Promise<void> {
     // Update git branches for all groups
-    for (const group of this.currentGroups) {
+    // Create a snapshot to avoid issues with concurrent updates
+    const groupsSnapshot = [...this.currentGroups];
+
+    for (const group of groupsSnapshot) {
       try {
         const branch = await window.terminalAPI.getGitBranch(group.workingDir);
 
+        // Find the current state of this group (may have been updated since snapshot)
+        const currentGroup = this.currentGroups.find(g => g.id === group.id);
+        if (!currentGroup) {
+          console.log(`Group ${group.id} no longer exists, skipping branch update`);
+          continue;
+        }
+
         // Only update if branch changed
-        if (branch !== group.gitBranch) {
+        if (branch !== currentGroup.gitBranch) {
+          console.log(`Branch changed for group ${group.id} (${group.title}):`,
+            currentGroup.gitBranch || 'none',
+            '→',
+            branch || 'none'
+          );
           this.onGroupUpdate(group.id, { gitBranch: branch });
         }
       } catch (error) {
-        // Ignore errors (likely not a git repo)
+        // Log errors for debugging but don't crash
+        console.error(`Failed to get git branch for group ${group.id} (${group.title}) at ${group.workingDir}:`, error);
       }
     }
   }
 
   private async updatePrs(): Promise<void> {
     // Update PRs for all groups
-    for (const group of this.currentGroups) {
+    // Create a snapshot to avoid issues with concurrent updates
+    const groupsSnapshot = [...this.currentGroups];
+
+    for (const group of groupsSnapshot) {
       try {
         const pr = await window.terminalAPI.getPr(group.workingDir);
 
+        // Find the current state of this group (may have been updated since snapshot)
+        const currentGroup = this.currentGroups.find(g => g.id === group.id);
+        if (!currentGroup) {
+          console.log(`Group ${group.id} no longer exists, skipping PR update`);
+          continue;
+        }
+
         // Only update if PR changed
         const prChanged =
-          (!pr && group.pr) ||
-          (pr && !group.pr) ||
-          (pr && group.pr && pr.number !== group.pr.number);
+          (!pr && currentGroup.pr) ||
+          (pr && !currentGroup.pr) ||
+          (pr && currentGroup.pr && pr.number !== currentGroup.pr.number);
 
         if (prChanged) {
+          console.log(`PR changed for group ${group.id} (${group.title}):`,
+            currentGroup.pr ? `#${currentGroup.pr.number}` : 'none',
+            '→',
+            pr ? `#${pr.number}` : 'none'
+          );
           this.onGroupUpdate(group.id, { pr });
         }
       } catch (error) {
-        // Ignore errors (no PR, gh not installed, or not authenticated)
+        // Log errors for debugging but don't crash
+        console.error(`Failed to get PR for group ${group.id} (${group.title}) at ${group.workingDir}:`, error);
       }
     }
   }

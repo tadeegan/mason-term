@@ -237,6 +237,7 @@ const setupTerminalHandlers = () => {
     try {
       // Prepare environment with PROMPT_COMMAND or precmd for bash/zsh
       const env = { ...(process.env as { [key: string]: string }) };
+      env.COLORTERM = 'truecolor';
 
       // For bash/zsh, we'll use shell arguments to source the mason function
       let shellArgs: string[] = [];
