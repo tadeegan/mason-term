@@ -1,8 +1,8 @@
 {
   "name": "mason-app",
   "productName": "mason-app",
-  "version": "1.3.1",
-  "description": "My Electron application description",
+  "version": "1.3.3",
+  "description": "Mason Terminal",
   "main": ".webpack/main",
   "scripts": {
     "start": "electron-forge start",
