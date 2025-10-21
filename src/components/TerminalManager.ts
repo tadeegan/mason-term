@@ -20,6 +20,8 @@ export class TerminalManager {
   private groupCounter = 0;
   private settings: AppSettings | null = null;
   private currentWorkspaceFile: string | null = null;
+  private saveInProgress: boolean = false;
+  private saveDebounceTimer: NodeJS.Timeout | null = null;
 
   constructor(
     groupSidebarContainer: HTMLElement,
@@ -425,8 +427,30 @@ export class TerminalManager {
 
   /**
    * Save current workspace state to file
+   * Debounced to prevent rapid successive saves from creating multiple files
    */
-  private async saveState(): Promise<void> {
+  private saveState(): void {
+    // Clear any existing debounce timer
+    if (this.saveDebounceTimer) {
+      clearTimeout(this.saveDebounceTimer);
+    }
+
+    // Set a new debounce timer to save after 500ms of inactivity
+    this.saveDebounceTimer = setTimeout(() => {
+      this.performSave();
+    }, 500);
+  }
+
+  /**
+   * Actually perform the save operation
+   */
+  private async performSave(): Promise<void> {
+    // Prevent multiple simultaneous saves
+    if (this.saveInProgress) {
+      return;
+    }
+
+    this.saveInProgress = true;
     try {
       const filename = await WorkspaceManager.saveWorkspace(this.groups, this.currentWorkspaceFile);
       // Update the current workspace file reference if it changed
@@ -435,6 +459,8 @@ export class TerminalManager {
       }
     } catch (error) {
       console.error('Failed to save workspace state:', error);
+    } finally {
+      this.saveInProgress = false;
     }
   }
 
