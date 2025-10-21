@@ -510,7 +510,8 @@ fi
       }
 
       // Execute gh command to get PR for current branch
-      const { stdout } = await execAsync('gh pr view --json number,title,url', {
+      // Include state to show open, merged, or closed PRs
+      const { stdout } = await execAsync('gh pr view --json number,title,url,state', {
         cwd: actualWorkingDir,
       });
 
@@ -520,6 +521,7 @@ fi
           number: prData.number,
           title: prData.title,
           url: prData.url,
+          state: prData.state || 'OPEN',
         };
       }
       return null;

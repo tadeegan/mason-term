@@ -157,8 +157,8 @@ const GroupItem: React.FC<GroupItemProps> = ({
 
         {group.pr && (
           <span
-            className="pr-badge"
-            title={`Pull Request: ${group.pr.title}`}
+            className={`pr-badge pr-badge-${group.pr.state.toLowerCase()}`}
+            title={`Pull Request (${group.pr.state}): ${group.pr.title}`}
             style={{ cursor: 'pointer' }}
             onClick={handlePrClick}
           >
