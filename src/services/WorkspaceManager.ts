@@ -5,11 +5,12 @@ export class WorkspaceManager {
   private static readonly VERSION = '1.0.0';
 
   /**
-   * Save the current workspace state to a timestamped file
+   * Save the current workspace state to a file
    * @param groups Array of groups to persist
+   * @param existingFilename Optional filename to update; if not provided, creates a new timestamped file
    * @returns The filename that was saved
    */
-  static async saveWorkspace(groups: Group[]): Promise<string> {
+  static async saveWorkspace(groups: Group[], existingFilename?: string | null): Promise<string> {
     const persistedGroups: PersistedGroup[] = groups.map((group) => ({
       id: group.id,
       title: group.title,
@@ -23,7 +24,7 @@ export class WorkspaceManager {
     };
 
     try {
-      const filename = await window.terminalAPI.saveWorkspace(workspaceData);
+      const filename = await window.terminalAPI.saveWorkspace(workspaceData, existingFilename);
       console.log(`Workspace saved to: ${filename}`);
       return filename;
     } catch (error) {

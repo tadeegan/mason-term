@@ -16,7 +16,7 @@ export interface TerminalAPI {
   openExternal: (url: string) => Promise<{ success: boolean }>;
   openInEditor: (workingDir: string) => Promise<{ success: boolean }>;
   closeWindow: () => void;
-  saveWorkspace: (data: WorkspaceData) => Promise<string>;
+  saveWorkspace: (data: WorkspaceData, existingFilename?: string | null) => Promise<string>;
   loadWorkspace: (filename: string) => Promise<WorkspaceData>;
   listWorkspaces: () => Promise<WorkspaceMetadata[]>;
   loadSettings: () => Promise<AppSettings>;

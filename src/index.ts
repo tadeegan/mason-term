@@ -679,10 +679,11 @@ fi
   };
 
   // Save workspace to file
-  ipcMain.handle('workspace:save', async (_, data: WorkspaceData): Promise<string> => {
+  ipcMain.handle('workspace:save', async (_, data: WorkspaceData, existingFilename?: string | null): Promise<string> => {
     try {
       const workspaceDir = getWorkspaceDir();
-      const filename = generateFilename();
+      // If an existing filename is provided, update that file; otherwise create a new one
+      const filename = existingFilename || generateFilename();
       const filepath = path.join(workspaceDir, filename);
 
       // Write the workspace data to file

@@ -1,6 +1,6 @@
 import { Terminal } from './Terminal';
 import { TabBar } from './TabBar';
-import { GroupSidebar } from './GroupSidebar';
+import { GroupSidebarReact } from './GroupSidebarReact';
 import { Tab } from '../types/tab';
 import { Group } from '../types/group';
 import { WorkspaceManager } from '../services/WorkspaceManager';
@@ -14,11 +14,12 @@ export class TerminalManager {
   private groups: Group[] = [];
   private activeGroupId: string | null = null;
   private tabBar: TabBar;
-  private groupSidebar: GroupSidebar;
+  private groupSidebar: GroupSidebarReact;
   private terminalContainer: HTMLElement;
   private tabCounter = 0;
   private groupCounter = 0;
   private settings: AppSettings | null = null;
+  private currentWorkspaceFile: string | null = null;
 
   constructor(
     groupSidebarContainer: HTMLElement,
@@ -29,7 +30,7 @@ export class TerminalManager {
   ) {
     this.terminalContainer = terminalContainer;
 
-    this.groupSidebar = new GroupSidebar(groupSidebarContainer, appContainer, {
+    this.groupSidebar = new GroupSidebarReact(groupSidebarContainer, appContainer, {
       onGroupSelect: (groupId) => this.switchGroup(groupId),
       onNewGroup: () => this.createNewGroup(),
       onGroupRename: (groupId, newTitle) => this.renameGroup(groupId, newTitle),
@@ -427,7 +428,11 @@ export class TerminalManager {
    */
   private async saveState(): Promise<void> {
     try {
-      await WorkspaceManager.saveWorkspace(this.groups);
+      const filename = await WorkspaceManager.saveWorkspace(this.groups, this.currentWorkspaceFile);
+      // Update the current workspace file reference if it changed
+      if (filename) {
+        this.currentWorkspaceFile = filename;
+      }
     } catch (error) {
       console.error('Failed to save workspace state:', error);
     }
@@ -436,7 +441,12 @@ export class TerminalManager {
   /**
    * Load workspace from data and recreate groups
    */
-  public loadWorkspace(workspaceData: WorkspaceData): void {
+  public loadWorkspace(workspaceData: WorkspaceData, filename?: string): void {
+    // Set the current workspace file so future saves update it instead of creating new files
+    if (filename) {
+      this.currentWorkspaceFile = filename;
+    }
+
     // Clear existing groups (except we'll replace them with loaded ones)
     this.groups = [];
 

@@ -29,6 +29,8 @@
     "@electron/fuses": "^1.8.0",
     "@types/node": "^24.8.0",
     "@types/pidusage": "^2.0.5",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "@vercel/webpack-asset-relocator-loader": "^1.7.3",
@@ -49,6 +51,8 @@
     "electron-squirrel-startup": "^1.0.1",
     "lucide": "^0.546.0",
     "node-pty": "^1.0.0",
-    "pidusage": "^4.0.1"
+    "pidusage": "^4.0.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   }
 }

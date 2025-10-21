@@ -64,8 +64,8 @@ window.addEventListener('DOMContentLoaded', async () => {
           true // Skip initial group
         );
 
-        // Load workspace data
-        terminalManager.loadWorkspace(workspaceData);
+        // Load workspace data, passing the filename so future saves update this file
+        terminalManager.loadWorkspace(workspaceData, selectedFilename);
       } else {
         // Start fresh
         console.log('Starting fresh workspace');
