@@ -458,6 +458,37 @@ fi
     }
   };
 
+  // Helper function to find gh executable
+  const findGhExecutable = (): string => {
+    // Common locations for gh CLI
+    const commonPaths = [
+      '/opt/homebrew/bin/gh',
+      '/usr/local/bin/gh',
+      '/usr/bin/gh',
+    ];
+
+    // Check if gh is in PATH first
+    try {
+      const { stdout } = require('child_process').execSync('which gh', { encoding: 'utf8' });
+      const ghPath = stdout.trim();
+      if (ghPath && fs.existsSync(ghPath)) {
+        return ghPath;
+      }
+    } catch {
+      // which command failed, continue to check common paths
+    }
+
+    // Check common paths
+    for (const ghPath of commonPaths) {
+      if (fs.existsSync(ghPath)) {
+        return ghPath;
+      }
+    }
+
+    // Fallback to just 'gh' and hope it's in PATH
+    return 'gh';
+  };
+
   // Get git branch for a directory
   ipcMain.handle('git:getBranch', async (_, workingDir: string) => {
     try {
@@ -511,7 +542,8 @@ fi
 
       // Execute gh command to get PR for current branch
       // Include state to show open, merged, or closed PRs
-      const { stdout } = await execAsync('gh pr view --json number,title,url,state', {
+      const ghPath = findGhExecutable();
+      const { stdout } = await execAsync(`${ghPath} pr view --json number,title,url,state`, {
         cwd: actualWorkingDir,
       });
 
