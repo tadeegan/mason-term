@@ -18,6 +18,7 @@ const config: ForgeConfig = {
     asar: {
       unpack: '{**/*.node,**/spawn-helper}',
     },
+    icon: './assets/icon',
   },
   rebuildConfig: {},
   hooks: {
