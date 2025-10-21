@@ -35,8 +35,8 @@ const terminalAPI: TerminalAPI = {
   openInEditor: (workingDir: string) =>
     ipcRenderer.invoke('shell:openInEditor', workingDir),
   closeWindow: () => ipcRenderer.send('window:close'),
-  saveWorkspace: (data) =>
-    ipcRenderer.invoke('workspace:save', data),
+  saveWorkspace: (data, existingFilename) =>
+    ipcRenderer.invoke('workspace:save', data, existingFilename),
   loadWorkspace: (filename) =>
     ipcRenderer.invoke('workspace:load', filename),
   listWorkspaces: () =>

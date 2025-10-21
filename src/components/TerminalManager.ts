@@ -22,6 +22,8 @@ export class TerminalManager {
   private currentWorkspaceFile: string | null = null;
   private saveInProgress: boolean = false;
   private saveDebounceTimer: NodeJS.Timeout | null = null;
+  private shouldAutoSave: boolean = false;
+  private lastSavedStateHash: string | null = null;
 
   constructor(
     groupSidebarContainer: HTMLElement,
@@ -305,6 +307,7 @@ export class TerminalManager {
       return group;
     });
     this.render();
+    // Hash-based change detection will automatically skip saves if only metadata changed
     this.saveState();
   }
 
@@ -426,10 +429,37 @@ export class TerminalManager {
   // Workspace persistence methods
 
   /**
+   * Compute a hash of the persistable workspace state (only core properties)
+   * This includes: group id, title, and workingDir
+   * Excludes: metadata like gitBranch, pr, isActive
+   */
+  private computeStateHash(): string {
+    const persistableState = this.groups.map(group => ({
+      id: group.id,
+      title: group.title,
+      workingDir: group.workingDir,
+    }));
+    return JSON.stringify(persistableState);
+  }
+
+  /**
    * Save current workspace state to file
    * Debounced to prevent rapid successive saves from creating multiple files
+   * Only saves if shouldAutoSave is true (i.e., working with a loaded workspace)
    */
   private saveState(): void {
+    // Only auto-save if we're working with a loaded workspace
+    if (!this.shouldAutoSave) {
+      return;
+    }
+
+    // Check if state has actually changed by comparing hashes
+    const currentHash = this.computeStateHash();
+    if (currentHash === this.lastSavedStateHash) {
+      // State hasn't changed, skip save
+      return;
+    }
+
     // Clear any existing debounce timer
     if (this.saveDebounceTimer) {
       clearTimeout(this.saveDebounceTimer);
@@ -457,6 +487,8 @@ export class TerminalManager {
       if (filename) {
         this.currentWorkspaceFile = filename;
       }
+      // Update the hash to reflect what we just saved
+      this.lastSavedStateHash = this.computeStateHash();
     } catch (error) {
       console.error('Failed to save workspace state:', error);
     } finally {
@@ -473,8 +505,14 @@ export class TerminalManager {
       this.currentWorkspaceFile = filename;
     }
 
+    // Enable auto-save since we're loading an existing workspace
+    this.shouldAutoSave = true;
+
     // Clear existing groups (except we'll replace them with loaded ones)
     this.groups = [];
+
+    // Clear the hash since we're replacing all groups
+    this.lastSavedStateHash = null;
 
     // Recreate groups from workspace data
     workspaceData.groups.forEach((persistedGroup, index) => {
@@ -500,5 +538,8 @@ export class TerminalManager {
       // Create initial tab
       this.createNewTab();
     }
+
+    // Compute initial hash after loading workspace to prevent immediate save
+    this.lastSavedStateHash = this.computeStateHash();
   }
 }
