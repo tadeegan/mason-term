@@ -218,22 +218,30 @@ const GroupSidebarComponent: React.FC<GroupSidebarProps> = ({
   onGroupUpdate,
 }) => {
   const processMonitorCardRef = useRef<ProcessMonitorCard | null>(null);
-  const updateIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const gitBranchUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const prUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Update git branches and PRs every 3 seconds
-    updateIntervalRef.current = setInterval(() => {
+    // Update git branches every 3 seconds
+    gitBranchUpdateIntervalRef.current = setInterval(() => {
       updateGitBranches();
-      updatePrs();
     }, 3000);
+
+    // Update PRs every 30 seconds
+    prUpdateIntervalRef.current = setInterval(() => {
+      updatePrs();
+    }, 30000);
 
     // Initial update
     updateGitBranches();
     updatePrs();
 
     return () => {
-      if (updateIntervalRef.current) {
-        clearInterval(updateIntervalRef.current);
+      if (gitBranchUpdateIntervalRef.current) {
+        clearInterval(gitBranchUpdateIntervalRef.current);
+      }
+      if (prUpdateIntervalRef.current) {
+        clearInterval(prUpdateIntervalRef.current);
       }
     };
   }, []);
