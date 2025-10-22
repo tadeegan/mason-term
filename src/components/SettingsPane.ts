@@ -4,15 +4,20 @@ export class SettingsPane {
   private modal: HTMLElement | null = null;
   private settings: AppSettings | null = null;
   private onSaveCallback: ((settings: AppSettings) => void) | null = null;
+  private installedEditors: { id: string; name: string; path: string }[] = [];
 
   async show() {
     // Load current settings
     try {
       this.settings = await window.terminalAPI.loadSettings();
+      this.installedEditors = await window.terminalAPI.detectInstalledEditors();
     } catch (error) {
       console.error('Failed to load settings:', error);
       return;
     }
+
+    // Build editor options HTML
+    const editorOptionsHtml = this.buildEditorOptions();
 
     // Create modal
     this.modal = document.createElement('div');
@@ -20,6 +25,20 @@ export class SettingsPane {
     this.modal.innerHTML = `
       <div class="settings-modal-content">
         <h2 class="settings-title">Settings</h2>
+
+        <div class="settings-section">
+          <h3 class="settings-section-title">Editor</h3>
+
+          <div class="settings-form-group">
+            <label class="settings-label" for="preferred-editor">
+              Preferred Editor
+              <span class="settings-hint">Choose which editor to use when opening directories</span>
+            </label>
+            <select id="preferred-editor" class="settings-select">
+              ${editorOptionsHtml}
+            </select>
+          </div>
+        </div>
 
         <div class="settings-section">
           <h3 class="settings-section-title">Terminal</h3>
@@ -93,12 +112,30 @@ export class SettingsPane {
     }
   }
 
+  buildEditorOptions(): string {
+    if (!this.settings) return '';
+
+    const currentEditor = this.settings.editor.preferredEditor;
+    let options = '<option value="auto"' + (currentEditor === 'auto' ? ' selected' : '') + '>Auto-detect</option>';
+    options += '<option value="system"' + (currentEditor === 'system' ? ' selected' : '') + '>System Default (Finder)</option>';
+
+    // Add installed editors
+    for (const editor of this.installedEditors) {
+      const selected = currentEditor === editor.id ? ' selected' : '';
+      options += `<option value="${editor.id}"${selected}>${editor.name}</option>`;
+    }
+
+    return options;
+  }
+
   async save() {
     if (!this.modal || !this.settings) return;
 
     // Get form values
     const scrollbackInput = this.modal.querySelector('#scrollback-lines') as HTMLInputElement;
     const scrollbackLines = parseInt(scrollbackInput.value, 10);
+    const editorSelect = this.modal.querySelector('#preferred-editor') as HTMLSelectElement;
+    const preferredEditor = editorSelect.value;
 
     // Validate
     if (isNaN(scrollbackLines) || scrollbackLines < 100 || scrollbackLines > 50000) {
@@ -108,6 +145,7 @@ export class SettingsPane {
 
     // Update settings
     this.settings.terminal.scrollbackLines = scrollbackLines;
+    this.settings.editor.preferredEditor = preferredEditor;
 
     // Save to file
     try {
@@ -137,6 +175,9 @@ export class SettingsPane {
       if (this.modal) {
         const scrollbackInput = this.modal.querySelector('#scrollback-lines') as HTMLInputElement;
         scrollbackInput.value = this.settings.terminal.scrollbackLines.toString();
+
+        const editorSelect = this.modal.querySelector('#preferred-editor') as HTMLSelectElement;
+        editorSelect.value = this.settings.editor.preferredEditor;
       }
     } catch (error) {
       console.error('Failed to reset settings:', error);

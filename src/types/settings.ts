@@ -6,9 +6,14 @@ export interface TerminalSettings {
   cursorStyle: 'block' | 'underline' | 'bar';
 }
 
+export interface EditorSettings {
+  preferredEditor: string;
+}
+
 export interface AppSettings {
   version: string;
   terminal: TerminalSettings;
+  editor: EditorSettings;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -19,5 +24,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
     fontFamily: 'Menlo, Monaco, "Courier New", monospace',
     cursorBlink: true,
     cursorStyle: 'block',
+  },
+  editor: {
+    preferredEditor: 'auto',
   },
 };

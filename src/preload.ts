@@ -34,6 +34,8 @@ const terminalAPI: TerminalAPI = {
     ipcRenderer.invoke('shell:openExternal', url),
   openInEditor: (workingDir: string) =>
     ipcRenderer.invoke('shell:openInEditor', workingDir),
+  detectInstalledEditors: () =>
+    ipcRenderer.invoke('shell:detectInstalledEditors'),
   closeWindow: () => ipcRenderer.send('window:close'),
   saveWorkspace: (data, existingFilename) =>
     ipcRenderer.invoke('workspace:save', data, existingFilename),

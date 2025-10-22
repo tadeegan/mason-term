@@ -62,6 +62,9 @@ export class SettingsManager {
         cursorBlink: settings.terminal?.cursorBlink ?? DEFAULT_SETTINGS.terminal.cursorBlink,
         cursorStyle: settings.terminal?.cursorStyle ?? DEFAULT_SETTINGS.terminal.cursorStyle,
       },
+      editor: {
+        preferredEditor: settings.editor?.preferredEditor ?? DEFAULT_SETTINGS.editor.preferredEditor,
+      },
     };
   }
 }

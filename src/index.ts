@@ -652,26 +652,126 @@ fi
     }
   });
 
+  // Detect installed editors
+  ipcMain.handle('shell:detectInstalledEditors', async () => {
+    const editors = [
+      {
+        id: 'code',
+        name: 'Visual Studio Code',
+        paths: ['/usr/local/bin/code', '/opt/homebrew/bin/code']
+      },
+      {
+        id: 'cursor',
+        name: 'Cursor',
+        paths: ['/usr/local/bin/cursor', '/opt/homebrew/bin/cursor']
+      },
+    ];
+
+    const installed = [];
+    for (const editor of editors) {
+      let editorPath = null;
+
+      // Try common paths
+      for (const path of editor.paths) {
+        try {
+          await fs.promises.access(path, fs.constants.X_OK);
+          editorPath = path;
+          break;
+        } catch {
+          // Not found at this path
+        }
+      }
+
+      // If not found in common paths, try using 'which'
+      if (!editorPath) {
+        try {
+          const { stdout } = await execAsync(`which ${editor.id}`);
+          const commandPath = stdout.trim();
+          if (commandPath) {
+            editorPath = commandPath;
+          }
+        } catch {
+          // Editor not found
+        }
+      }
+
+      if (editorPath) {
+        installed.push({ id: editor.id, name: editor.name, path: editorPath });
+      }
+    }
+
+    return installed;
+  });
+
   // Open directory in editor
   ipcMain.handle('shell:openInEditor', async (_, workingDir: string) => {
     try {
-      // Try common editors in order of preference
+      const settings = await SettingsManager.load();
+      const preferredEditor = settings.editor.preferredEditor;
+
+      // If system default is selected, just open in Finder/File Explorer
+      if (preferredEditor === 'system') {
+        await shell.openPath(workingDir);
+        return { success: true };
+      }
+
+      // List of editors with their possible paths
       const editors = [
-        { command: 'code', args: [workingDir] },           // VS Code
-        { command: 'cursor', args: [workingDir] },         // Cursor
-        { command: 'subl', args: [workingDir] },           // Sublime Text
-        { command: 'atom', args: [workingDir] },           // Atom
+        {
+          id: 'code',
+          paths: ['/usr/local/bin/code', '/opt/homebrew/bin/code']
+        },
+        {
+          id: 'cursor',
+          paths: ['/usr/local/bin/cursor', '/opt/homebrew/bin/cursor']
+        },
       ];
 
-      for (const editor of editors) {
+      // Helper function to try opening with an editor
+      const tryOpenEditor = async (editorId: string): Promise<boolean> => {
+        const editor = editors.find(e => e.id === editorId);
+        if (!editor) return false;
+
+        // Try common paths
+        for (const editorPath of editor.paths) {
+          try {
+            await fs.promises.access(editorPath, fs.constants.X_OK);
+            await execAsync(`"${editorPath}" "${workingDir}"`);
+            return true;
+          } catch {
+            // Try next path
+          }
+        }
+
+        // Try with 'which' as fallback
         try {
-          await execAsync(`which ${editor.command}`);
-          // Editor found, open it
-          await execAsync(`${editor.command} "${workingDir}"`);
-          return { success: true };
+          const { stdout } = await execAsync(`which ${editorId}`);
+          const commandPath = stdout.trim();
+          if (commandPath) {
+            await execAsync(`"${commandPath}" "${workingDir}"`);
+            return true;
+          }
         } catch {
-          // Editor not found, try next
-          continue;
+          // Not found
+        }
+
+        return false;
+      };
+
+      // If a specific editor is preferred, try it first
+      if (preferredEditor !== 'auto') {
+        const success = await tryOpenEditor(preferredEditor);
+        if (success) {
+          return { success: true };
+        }
+        console.error(`Preferred editor ${preferredEditor} not found or failed to open`);
+      }
+
+      // Auto mode or preferred editor failed - try all editors in order
+      for (const editor of editors) {
+        const success = await tryOpenEditor(editor.id);
+        if (success) {
+          return { success: true };
         }
       }
 
