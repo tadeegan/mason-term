@@ -458,6 +458,48 @@ fi
     }
   };
 
+  // Helper function to detect Claude processes
+  const detectClaudeProcesses = async (pids: number[]): Promise<string[]> => {
+    if (process.platform === 'win32') {
+      return []; // Not implemented for Windows yet
+    }
+
+    try {
+      const claudeProcesses = new Set<string>();
+
+      for (const pid of pids) {
+        try {
+          // Get process command line
+          const { stdout } = await execAsync(`ps -p ${pid} -o command=`);
+          const command = stdout.trim();
+
+          // Check if it's a Claude-related process
+          // Look for 'claude' in the command (case-insensitive)
+          if (command.toLowerCase().includes('claude')) {
+            // Extract a readable process name
+            const parts = command.split(/\s+/);
+            const executablePath = parts[0];
+            const executableName = executablePath.split('/').pop() || executablePath;
+
+            // If it has arguments that suggest it's Claude Code or Claude CLI
+            if (command.includes('claude-code') || command.includes('claude code')) {
+              claudeProcesses.add('Claude Code');
+            } else if (command.includes('claude')) {
+              // Generic Claude process
+              claudeProcesses.add(executableName);
+            }
+          }
+        } catch (error) {
+          // Process might have exited, skip it
+        }
+      }
+
+      return Array.from(claudeProcesses).sort();
+    } catch (error) {
+      return [];
+    }
+  };
+
   // Helper function to find gh executable
   const findGhExecutable = (): string => {
     // Common locations for gh CLI
@@ -620,11 +662,15 @@ fi
         }
       }
 
+      // Detect Claude processes
+      const claudeProcesses = await detectClaudeProcesses(allPids);
+
       return {
         terminalId,
         pid,
         processName,
         ports,
+        claudeProcesses,
         cpuPercent: Math.round(totalCpu * 10) / 10, // Round to 1 decimal
         memoryMB: Math.round(totalMemory / 1024 / 1024 * 10) / 10, // Convert to MB, round to 1 decimal
       };
@@ -635,6 +681,7 @@ fi
         pid,
         processName,
         ports: [],
+        claudeProcesses: [],
         cpuPercent: 0,
         memoryMB: 0,
       };

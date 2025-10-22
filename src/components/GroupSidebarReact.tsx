@@ -7,6 +7,7 @@ import { ProcessMonitorCard } from './ProcessMonitorCard';
 interface GroupStats {
   memory: number;
   ports: number[];
+  claudeProcesses: string[];
 }
 
 interface GroupItemProps {
@@ -186,6 +187,11 @@ const GroupItem: React.FC<GroupItemProps> = ({
         {stats && (
           <>
             {stats.memory > 0 && <span>{stats.memory.toFixed(0)}MB</span>}
+            {stats.claudeProcesses.length > 0 && stats.claudeProcesses.map(proc => (
+              <span key={proc} className="port-badge claude-badge" title={`Claude: ${proc}`}>
+                {proc}
+              </span>
+            ))}
             {stats.ports.length > 0 && stats.ports.map(port => (
               <span key={port} className="port-badge" title={`Port ${port}`}>
                 :{port}
@@ -471,19 +477,23 @@ export class GroupSidebarReact {
 
       let totalMemory = 0;
       const allPorts = new Set<number>();
+      const allClaudeProcesses = new Set<string>();
 
       validInfo.forEach(info => {
         if (info) {
           totalMemory += info.memoryMB;
           info.ports.forEach(port => allPorts.add(port));
+          info.claudeProcesses.forEach(proc => allClaudeProcesses.add(proc));
         }
       });
 
       const portsArray = Array.from(allPorts).sort((a, b) => a - b);
+      const claudeProcessesArray = Array.from(allClaudeProcesses).sort();
 
       newStats.set(group.id, {
         memory: totalMemory,
         ports: portsArray,
+        claudeProcesses: claudeProcessesArray,
       });
     }
 

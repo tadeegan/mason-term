@@ -592,6 +592,11 @@ html, body {
   font-family: 'Courier New', monospace;
 }
 
+.claude-badge {
+  background: #db7c26;
+  color: #ffffff;
+}
+
 .process-monitor-terminals {
   display: flex;
   flex-direction: column;
@@ -655,6 +660,14 @@ html, body {
 
 .terminal-memory {
   color: #569cd6;
+}
+
+.terminal-claude {
+  font-size: 11px;
+  color: #858585;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .terminal-ports {

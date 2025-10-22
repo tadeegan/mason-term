@@ -5,6 +5,7 @@ export interface ProcessInfo {
   processName: string;
   workingDir: string;
   ports: number[];
+  claudeProcesses: string[];
   cpuPercent: number;
   memoryMB: number;
 }

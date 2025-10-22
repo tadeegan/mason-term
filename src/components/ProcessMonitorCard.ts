@@ -113,8 +113,9 @@ export class ProcessMonitorCard {
 
     const results = await Promise.all(processInfoPromises);
 
-    // Collect all ports across all terminals
+    // Collect all ports and Claude processes across all terminals
     const allPorts = new Set<number>();
+    const allClaudeProcesses = new Set<string>();
     let totalCpu = 0;
     let totalMemory = 0;
 
@@ -123,6 +124,7 @@ export class ProcessMonitorCard {
     validResults.forEach((r) => {
       if (r.info) {
         r.info.ports.forEach((port) => allPorts.add(port));
+        r.info.claudeProcesses.forEach((proc) => allClaudeProcesses.add(proc));
         totalCpu += r.info.cpuPercent;
         totalMemory += r.info.memoryMB;
       }
@@ -130,6 +132,7 @@ export class ProcessMonitorCard {
 
     // Build card HTML
     const portsArray = Array.from(allPorts).sort((a, b) => a - b);
+    const claudeProcessesArray = Array.from(allClaudeProcesses).sort();
 
     let html = `
       <div class="process-monitor-header">
@@ -147,6 +150,17 @@ export class ProcessMonitorCard {
       </div>
     `;
 
+    if (claudeProcessesArray.length > 0) {
+      html += `
+        <div class="process-monitor-ports">
+          <div class="ports-label">Claude Running:</div>
+          <div class="ports-list">
+            ${claudeProcessesArray.map((proc) => `<span class="port-badge claude-badge">${proc}</span>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+
     if (portsArray.length > 0) {
       html += `
         <div class="process-monitor-ports">
@@ -156,7 +170,7 @@ export class ProcessMonitorCard {
           </div>
         </div>
       `;
-    } else {
+    } else if (claudeProcessesArray.length === 0) {
       html += `
         <div class="process-monitor-ports">
           <div class="ports-label">No ports listening</div>
@@ -182,6 +196,15 @@ export class ProcessMonitorCard {
                 <span class="terminal-cpu">CPU: ${info.cpuPercent.toFixed(1)}%</span>
                 <span class="terminal-memory">Mem: ${info.memoryMB.toFixed(1)} MB</span>
               </div>
+              ${
+                info.claudeProcesses.length > 0
+                  ? `
+                <div class="terminal-claude">
+                  Claude: ${info.claudeProcesses.join(', ')}
+                </div>
+              `
+                  : ''
+              }
               ${
                 info.ports.length > 0
                   ? `
