@@ -14,6 +14,7 @@ export class Terminal {
   private workingDir: string;
   private resizeObserver: ResizeObserver;
   private isVisible: boolean = true;
+  private pendingData: string = '';
 
   constructor(container: HTMLElement, terminalId: string, workingDir: string, settings?: AppSettings) {
     this.container = container;
@@ -125,15 +126,15 @@ export class Terminal {
   }
 
   public show(): void {
-    this.container.style.display = 'block';
+    this.container.style.zIndex = '1';
     this.isVisible = true;
     // Restore proper dimensions after showing
     this.fit();
   }
 
   public hide(): void {
+    this.container.style.zIndex = '0';
     this.isVisible = false;
-    this.container.style.display = 'none';
   }
 
   public getId(): string {

@@ -130,7 +130,7 @@ export class TerminalManager {
     const terminalDiv = document.createElement('div');
     terminalDiv.id = `terminal-${tabId}`;
     terminalDiv.className = 'terminal-instance';
-    terminalDiv.style.display = 'none';
+    terminalDiv.style.zIndex = '0'; // Start hidden behind, will be set to 1 when shown
     this.terminalContainer.appendChild(terminalDiv);
 
     // Create terminal with group's working directory and settings
