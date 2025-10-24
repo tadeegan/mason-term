@@ -99,6 +99,11 @@ window.addEventListener('DOMContentLoaded', async () => {
       settingsPane.show();
     });
 
+    // Listen for menu events to clear terminal
+    window.terminalAPI.onMenuClearTerminal(() => {
+      terminalManager.handleClearTerminalShortcut();
+    });
+
     // Setup mason command listener
     window.terminalAPI.onMasonCommand((command: string, path: string) => {
       console.log(`Mason command received: ${command} ${path}`);
@@ -143,6 +148,12 @@ window.addEventListener('DOMContentLoaded', async () => {
       if (cmdOrCtrl && e.key === ',') {
         e.preventDefault();
         settingsPane.show();
+      }
+
+      // Cmd/Ctrl + K: Clear Terminal
+      if (cmdOrCtrl && e.key === 'k') {
+        e.preventDefault();
+        terminalManager.handleClearTerminalShortcut();
       }
     });
 

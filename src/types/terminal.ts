@@ -24,6 +24,7 @@ export interface TerminalAPI {
   saveSettings: (settings: AppSettings) => Promise<void>;
   resetSettings: () => Promise<AppSettings>;
   onMenuOpenSettings: (callback: () => void) => void;
+  onMenuClearTerminal: (callback: () => void) => void;
 }
 
 declare global {

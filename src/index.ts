@@ -137,6 +137,14 @@ const setupMenu = (mainWindow: BrowserWindow): void => {
     {
       label: 'View',
       submenu: [
+        {
+          label: 'Clear Terminal',
+          accelerator: isMac ? 'Cmd+K' : 'Ctrl+K',
+          click: () => {
+            mainWindow.webContents.send('menu:clear-terminal');
+          }
+        },
+        { type: 'separator' as const },
         // Only include reload options in development mode
         ...(process.env.NODE_ENV === 'development' ? [
           { role: 'reload' as const },

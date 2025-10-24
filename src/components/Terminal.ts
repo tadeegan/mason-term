@@ -145,6 +145,10 @@ export class Terminal {
     this.xterm.focus();
   }
 
+  public clear(): void {
+    this.xterm.clear();
+  }
+
   public dispose(): void {
     this.resizeObserver.disconnect();
     this.xterm.dispose();

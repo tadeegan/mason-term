@@ -52,6 +52,9 @@ const terminalAPI: TerminalAPI = {
   onMenuOpenSettings: (callback: () => void) => {
     ipcRenderer.on('menu:open-settings', () => callback());
   },
+  onMenuClearTerminal: (callback: () => void) => {
+    ipcRenderer.on('menu:clear-terminal', () => callback());
+  },
 };
 
 contextBridge.exposeInMainWorld('terminalAPI', terminalAPI);

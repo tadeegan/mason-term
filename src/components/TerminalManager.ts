@@ -13,6 +13,7 @@ export class TerminalManager {
   private activeTabId: string | null = null;
   private groups: Group[] = [];
   private activeGroupId: string | null = null;
+  private lastActiveTabPerGroup: Map<string, string> = new Map(); // Track last active tab for each group
   private tabBar: TabBar;
   private groupSidebar: GroupSidebarReact;
   private terminalContainer: HTMLElement;
@@ -161,9 +162,12 @@ export class TerminalManager {
       return;
     }
 
-    // Switch to first tab in group (or the active one if it exists)
-    const activeTab = groupTabs.find((tab) => tab.isActive) || groupTabs[0];
-    this.switchTab(activeTab.id);
+    // Switch to the last active tab for this group, or the first tab if no history
+    const lastActiveTabId = this.lastActiveTabPerGroup.get(groupId);
+    const tabToActivate = lastActiveTabId && groupTabs.find((tab) => tab.id === lastActiveTabId)
+      ? lastActiveTabId
+      : groupTabs[0].id;
+    this.switchTab(tabToActivate);
   }
 
   private switchTab(tabId: string): void {
@@ -191,6 +195,10 @@ export class TerminalManager {
     });
 
     this.activeTabId = tabId;
+
+    // Record this tab as the last active tab for its group
+    this.lastActiveTabPerGroup.set(tab.groupId, tabId);
+
     this.render();
   }
 
@@ -221,12 +229,19 @@ export class TerminalManager {
     // Remove tab
     this.tabs.splice(tabIndex, 1);
 
-    // If this was the last tab in the group, show empty workspace
+    // If this was the last tab in the group, show empty workspace and clear tracking
     if (groupTabs.length === 1) {
       this.activeTabId = null;
+      this.lastActiveTabPerGroup.delete(tab.groupId);
       this.showEmptyWorkspace();
       this.render();
       return;
+    }
+
+    // If we're closing the last active tab for this group, clear it from tracking
+    // (switchTab will set a new one when we switch to adjacent tab)
+    if (this.lastActiveTabPerGroup.get(tab.groupId) === tabId) {
+      this.lastActiveTabPerGroup.delete(tab.groupId);
     }
 
     // Switch to adjacent tab if we closed the active tab
@@ -335,6 +350,9 @@ export class TerminalManager {
     // Remove tabs
     this.tabs = this.tabs.filter((t) => t.groupId !== groupId);
 
+    // Clear last active tab tracking for this group
+    this.lastActiveTabPerGroup.delete(groupId);
+
     // Remove group
     const groupIndex = this.groups.findIndex((g) => g.id === groupId);
     if (groupIndex !== -1) {
@@ -423,6 +441,16 @@ export class TerminalManager {
     // Check if index is within bounds (1-based index from user, 0-based for array)
     if (index > 0 && index <= groupTabs.length) {
       this.switchTab(groupTabs[index - 1].id);
+    }
+  }
+
+  // Public method for keyboard shortcut: Cmd+K (clear terminal)
+  public handleClearTerminalShortcut(): void {
+    if (this.activeTabId) {
+      const terminal = this.terminals.get(this.activeTabId);
+      if (terminal) {
+        terminal.clear();
+      }
     }
   }
 
