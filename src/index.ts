@@ -246,6 +246,10 @@ const setupTerminalHandlers = () => {
       // Prepare environment with PROMPT_COMMAND or precmd for bash/zsh
       const env = { ...(process.env as { [key: string]: string }) };
       env.COLORTERM = 'truecolor';
+      // Always set LANG to ensure UTF-8 encoding (GUI apps on macOS don't inherit LANG)
+      if (!env.LANG) {
+        env.LANG = 'en_US.UTF-8';
+      }
 
       // For bash/zsh, we'll use shell arguments to source the mason function
       let shellArgs: string[] = [];

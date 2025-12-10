@@ -19,6 +19,9 @@ const config: ForgeConfig = {
       unpack: '{**/*.node,**/spawn-helper}',
     },
     icon: './assets/icon',
+    extendInfo: {
+      NSAppleEventsUsageDescription: 'This app needs to send Apple Events to control other applications.',
+    },
   },
   rebuildConfig: {},
   hooks: {

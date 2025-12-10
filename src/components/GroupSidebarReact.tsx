@@ -252,11 +252,10 @@ const GroupSidebarComponent: React.FC<GroupSidebarProps> = ({
     };
   }, []);
 
-  // Re-run updates when groups change
-  useEffect(() => {
-    updateGitBranches();
-    updatePrs();
-  }, [groups]);
+  // Note: We don't re-run updates when groups change because:
+  // 1. The intervals already handle periodic updates
+  // 2. Re-running on every group change creates a cascading loop (branch update -> groups change -> PR check -> groups change -> etc.)
+  // 3. This was causing rate limiting due to excessive API calls
 
   const updateGitBranches = async () => {
     const groupsSnapshot = [...groups];
@@ -273,9 +272,11 @@ const GroupSidebarComponent: React.FC<GroupSidebarProps> = ({
 
         if (branch !== currentGroup.gitBranch) {
           console.log(`Branch changed for group ${group.id} (${group.title}):`,
-            currentGroup.gitBranch || 'none', '→', branch || 'none'
+            currentGroup.gitBranch || 'none', '→', branch || 'none',
+            '- Clearing PR'
           );
-          onGroupUpdate(group.id, { gitBranch: branch });
+          // Clear PR when branch changes since PR is branch-specific
+          onGroupUpdate(group.id, { gitBranch: branch, pr: null });
         }
       } catch (error) {
         console.error(`Failed to get git branch for group ${group.id}:`, error);
@@ -304,10 +305,14 @@ const GroupSidebarComponent: React.FC<GroupSidebarProps> = ({
           continue;
         }
 
+        // Normalize undefined to null for consistent comparison
+        const normalizedPr = pr || null;
+        const normalizedCurrentPr = currentGroup.pr || null;
+
         const prChanged =
-          (!pr && currentGroup.pr) ||
-          (pr && !currentGroup.pr) ||
-          (pr && currentGroup.pr && pr.number !== currentGroup.pr.number);
+          (!normalizedPr && normalizedCurrentPr) ||
+          (normalizedPr && !normalizedCurrentPr) ||
+          (normalizedPr && normalizedCurrentPr && normalizedPr.number !== normalizedCurrentPr.number);
 
         console.log(`  PR changed? ${prChanged}`);
         console.log(`    (!pr && currentGroup.pr): ${!pr && currentGroup.pr}`);

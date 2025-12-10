@@ -330,9 +330,11 @@ export class GroupSidebar {
           console.log(`Branch changed for group ${group.id} (${group.title}):`,
             currentGroup.gitBranch || 'none',
             '→',
-            branch || 'none'
+            branch || 'none',
+            '- Clearing PR'
           );
-          this.onGroupUpdate(group.id, { gitBranch: branch });
+          // Clear PR when branch changes since PR is branch-specific
+          this.onGroupUpdate(group.id, { gitBranch: branch, pr: null });
         }
       } catch (error) {
         // Log errors for debugging but don't crash
@@ -357,11 +359,15 @@ export class GroupSidebar {
           continue;
         }
 
+        // Normalize undefined to null for consistent comparison
+        const normalizedPr = pr || null;
+        const normalizedCurrentPr = currentGroup.pr || null;
+
         // Only update if PR changed
         const prChanged =
-          (!pr && currentGroup.pr) ||
-          (pr && !currentGroup.pr) ||
-          (pr && currentGroup.pr && pr.number !== currentGroup.pr.number);
+          (!normalizedPr && normalizedCurrentPr) ||
+          (normalizedPr && !normalizedCurrentPr) ||
+          (normalizedPr && normalizedCurrentPr && normalizedPr.number !== normalizedCurrentPr.number);
 
         if (prChanged) {
           console.log(`PR changed for group ${group.id} (${group.title}):`,
